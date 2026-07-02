@@ -1,6 +1,11 @@
 package com.example.zaradashboardapp
 
+import androidx.compose.animation.core.*
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -12,6 +17,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
@@ -22,32 +29,20 @@ import java.time.format.DateTimeFormatter
 import com.example.zaradashboardapp.ui.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
-@Preview(showBackground = true, backgroundColor = 0xFF121212)
-@Composable
-fun DashboardPreview() {
-    // Per il preview usiamo un mock dello stato senza passare per il ViewModel reale che richiede Application
-    ZaraDashboardAppTheme(darkTheme = true) {
-        Column(
-            modifier = Modifier
-                .background(DarkBackground)
-                .verticalScroll(rememberScrollState())
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            EnergyCard(energy = EnergyMetrics(productionFvW = 4500, consumptionHomeW = 1200, powerwallSoc = 85, surplusW = 3300))
-            ClimateCard(climate = ClimateState(targetTemp = 22, isAcOn = true, reason = "Free Cooling"), onSetTemp = {})
-            LightsCard(lightsMap = mapOf("sala" to true, "cucina" to false), onToggleLight = { _, _ -> })
-            EnvironmentCard(env = EnvironmentalMetrics(tempLiving = 21.5f, humLiving = 45f, tempBedroom = 19.8f, humBedroom = 50f, tempOutdoor = 12.0f, humOutdoor = 65f))
-            HeatingCard(heating = HeatingState(acsBufferTemp = 48.5f, highBufferTemp = 55.0f, lowBufferTemp = 32.0f))
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardScreen(viewModel: DashboardViewModel) {
     val uiState by viewModel.uiState.collectAsState()
     var showSettings by remember { mutableStateOf(false) }
+
+    // Ticking Clock Simulation
+    var currentTimeString by remember { mutableStateOf("") }
+    LaunchedEffect(Unit) {
+        val clockFormat = java.text.SimpleDateFormat("EEEE dd MMMM, HH:mm:ss", java.util.Locale.ITALIAN)
+        while (true) {
+            currentTimeString = clockFormat.format(java.util.Date())
+            kotlinx.coroutines.delay(1000)
+        }
+    }
 
     if (showSettings) {
         SettingsDialog(
@@ -64,17 +59,57 @@ fun DashboardScreen(viewModel: DashboardViewModel) {
         topBar = {
             TopAppBar(
                 title = {
-                    Text(
-                        "Zara Dashboard",
-                        style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold)
-                    )
+                    Column {
+                        Text(
+                            "ZARA DASHBOARD",
+                            color = TealPrimary,
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontWeight = FontWeight.ExtraBold,
+                                letterSpacing = 1.sp
+                            )
+                        )
+                        Text(
+                            text = currentTimeString.uppercase(),
+                            color = Color.White.copy(alpha = 0.5f),
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Normal,
+                            fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
+                        )
+                    }
                 },
                 actions = {
                     ConnectionIndicator(status = uiState.connectionStatus)
+                    
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    // System AI Master Status Switch - Compact Version
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(if (uiState.isGlobalEnabled) Color(0x1F00C853) else Color(0x1FFF1744))
+                            .clickable { viewModel.toggleSystem() }
+                            .padding(horizontal = 8.dp, vertical = 6.dp)
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(
+                                modifier = Modifier
+                                    .size(6.dp)
+                                    .clip(CircleShape)
+                                    .background(if (uiState.isGlobalEnabled) GreenActive else Color.Red)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = if (uiState.isGlobalEnabled) "AI" else "OFF",
+                                color = if (uiState.isGlobalEnabled) GreenActive else Color.Red,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+
                     IconButton(onClick = { showSettings = true }) {
                         Icon(Icons.Default.Settings, contentDescription = "Settings", tint = Color.White)
                     }
-                    Spacer(modifier = Modifier.width(8.dp))
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = DarkBackground,
@@ -88,25 +123,17 @@ fun DashboardScreen(viewModel: DashboardViewModel) {
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(DarkBackground, Color(0xFF15181C))
+                    )
+                )
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(24.dp)
+            verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
-            // Section: Welcome Header
-            Text(
-                text = "Bentornato a Casa",
-                color = Color.White,
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Light
-            )
-
-            // Section: Header & Global Controls
-            GlobalControlsSection(
-                isSystemEnabled = uiState.isGlobalEnabled,
-                isHolidayMode = uiState.isHolidayMode,
-                onToggleSystem = { viewModel.toggleSystem() },
-                onToggleHoliday = { viewModel.toggleHolidayMode() }
-            )
+            // Section: Environments Quick Metrics
+            EnvironmentCard(env = uiState.env)
 
             // Section: Energy
             EnergyCard(energy = uiState.energy)
@@ -123,23 +150,22 @@ fun DashboardScreen(viewModel: DashboardViewModel) {
                 onSetSpeed = { viewModel.setVmcSpeed(it) }
             )
 
+            // Section: Heating
+            HeatingCard(heating = uiState.heating)
+
             // Section: Lights
             LightsCard(
                 lightsMap = uiState.lights,
                 onToggleLight = { name, state -> viewModel.setLightState(name, state) }
             )
 
-            // Section: Environments
-            EnvironmentCard(env = uiState.env)
-
-            // Section: Heating
-            HeatingCard(heating = uiState.heating)
-
-            // Section: Rooms / Environments
-            DashboardCard(title = "Ambienti", accentColor = Sunset) {
-                Box(modifier = Modifier.height(100.dp).fillMaxWidth(), contentAlignment = Alignment.Center) {
-                    Text("Placeholder Ambienti", color = Color.Gray)
-                }
+            // Section: Automatismi
+            DashboardCard(title = "Automatismi & Settaggi", accentColor = TealPrimary) {
+                AutomationSwitchRow(
+                    label = "Modalità Vacanza (Antigelo)",
+                    checked = uiState.isHolidayMode,
+                    onCheckedChange = { viewModel.toggleHolidayMode() }
+                )
             }
 
             // Section: Logs
@@ -149,140 +175,122 @@ fun DashboardScreen(viewModel: DashboardViewModel) {
 }
 
 @Composable
-fun GlobalControlsSection(
-    isSystemEnabled: Boolean,
-    isHolidayMode: Boolean,
-    onToggleSystem: () -> Unit,
-    onToggleHoliday: () -> Unit
-) {
-    Card(
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = DarkSurface),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            // Master AI System
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.Psychology, contentDescription = null, tint = Emerald)
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Text("Cervello AI (Master)", color = Color.White, fontWeight = FontWeight.Medium)
-                }
-                Switch(
-                    checked = isSystemEnabled,
-                    onCheckedChange = { onToggleSystem() },
-                    colors = SwitchDefaults.colors(
-                        checkedThumbColor = Emerald,
-                        checkedTrackColor = Emerald.copy(alpha = 0.4f)
-                    )
-                )
-            }
-
-            HorizontalDivider(color = Color.DarkGray, thickness = 0.5.dp)
-
-            // Holiday Mode
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.BeachAccess, contentDescription = null, tint = Sunset)
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Text("Modalità Vacanza (Antigelo)", color = Color.White, fontWeight = FontWeight.Medium)
-                }
-                Switch(
-                    checked = isHolidayMode,
-                    onCheckedChange = { onToggleHoliday() },
-                    colors = SwitchDefaults.colors(
-                        checkedThumbColor = Sunset,
-                        checkedTrackColor = Sunset.copy(alpha = 0.4f)
-                    )
-                )
-            }
-        }
-    }
-}
-
-@Composable
 fun EnergyCard(energy: EnergyMetrics) {
-    DashboardCard(title = "Flussi Energetici", accentColor = Emerald) {
-        Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
-            // Main Metrics Row
+    DashboardCard(title = "Metering Energetico", accentColor = TealPrimary) {
+        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            // Gauges Row
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                EnergyMetricItem(
-                    label = "Fotovoltaico",
-                    value = "${energy.productionFvW} W",
-                    icon = Icons.Default.SolarPower,
-                    iconColor = Amber,
+                PowerGauge(
+                    value = energy.consumptionHomeW,
+                    maxLimit = 5000,
+                    title = "CONSU-CASA",
+                    unit = "W",
+                    colors = listOf(GreenActive, Amber, Crimson),
                     modifier = Modifier.weight(1f)
                 )
-                EnergyMetricItem(
-                    label = "Casa",
-                    value = "${energy.consumptionHomeW} W",
-                    icon = Icons.Default.Home,
-                    iconColor = Color.White,
-                    modifier = Modifier.weight(1f)
-                )
-                EnergyMetricItem(
-                    label = "Batteria",
-                    value = "${energy.powerwallSoc}%",
-                    icon = Icons.Default.Bolt,
-                    iconColor = if (energy.powerwallSoc > 20) Emerald else Crimson,
+                PowerGauge(
+                    value = energy.productionFvW,
+                    maxLimit = 5000,
+                    title = "SOLARE FV",
+                    unit = "W",
+                    colors = listOf(SkyBlue, Amber, OrangeAccent),
                     modifier = Modifier.weight(1f)
                 )
             }
 
-            HorizontalDivider(color = Color.DarkGray, thickness = 0.5.dp)
+            HorizontalDivider(color = Color.White.copy(alpha = 0.08f))
+
+            // Battery Section (Tesla Style)
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("🔋", fontSize = 20.sp)
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Column {
+                            Text("TESLA POWERWALL", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                            Text("Stato Ricarica Accumulatore", color = GreyText, fontSize = 11.sp)
+                        }
+                    }
+                    Text(
+                        text = "${energy.powerwallSoc}%",
+                        color = if (energy.powerwallSoc > 20) GreenActive else Crimson,
+                        fontWeight = FontWeight.ExtraBold,
+                        fontSize = 20.sp
+                    )
+                }
+
+                // Battery linear indicator bar
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(10.dp)
+                        .clip(RoundedCornerShape(5.dp))
+                        .background(Color.White.copy(alpha = 0.1f))
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxHeight()
+                            .fillMaxWidth(energy.powerwallSoc / 100f)
+                            .clip(RoundedCornerShape(5.dp))
+                            .background(
+                                Brush.horizontalGradient(
+                                    listOf(Crimson, Amber, GreenActive)
+                                )
+                            )
+                    )
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    val surplus = energy.productionFvW - energy.consumptionHomeW
+                    Text(
+                        text = "Surplus Solare: $surplus W",
+                        color = if (surplus >= 0) GreenActive else OrangeAccent,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Text(
+                        text = if (surplus >= 0) "IN CARICA" else "SCARICA (RETE)",
+                        color = if (surplus >= 0) GreenActive else OrangeAccent,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.ExtraBold
+                    )
+                }
+            }
+
+            HorizontalDivider(color = Color.White.copy(alpha = 0.08f))
 
             // Grid Balance
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.Center
-            )
-            {
-                // ... (codice precedente della card) ...
-
-                val gridValue = energy.gridPowerW // Il valore già filtrato dalla deadband
-                val isDrawingFromGrid = gridValue > 0 // (Adatta il > o < in base al segno che usi)
-
-// Calcoliamo lo sbilancio interno (deficit)
+            ) {
+                val gridValue = energy.gridPowerW
+                val isDrawingFromGrid = gridValue > 0
                 val deficit = energy.consumptionHomeW - energy.productionFvW
 
                 if (gridValue == 0) {
-                    // La rete è a zero, capiamo cosa sta facendo la batteria
                     if (deficit > 0) {
-                        // La casa consuma più del solare: la batteria interviene
-                        Text(
-                            text = "🔋 Prelievo da Batteria: $deficit W",
-                            color = Color(0xFF00E676), // Un Semantic Emerald/Verde Elettrico brillante
-                            fontWeight = FontWeight.Bold
-                        )
+                        Text("🔋 Prelievo da Batteria: $deficit W", color = GreenActive, fontWeight = FontWeight.Bold)
                     } else if (deficit < 0) {
-                        // Il solare produce più della casa: stiamo caricando l'accumulo
-                        Text(
-                            text = "⚡ Ricarica Batteria: ${kotlin.math.abs(deficit)} W",
-                            color = Color(0xFF29B6F6), // Un brillante Sky Blue
-                            fontWeight = FontWeight.Bold
-                        )
+                        Text("⚡ Ricarica Batteria: ${kotlin.math.abs(deficit)} W", color = BlueCool, fontWeight = FontWeight.Bold)
                     } else {
-                        // Raro, ma possibile: consumo e produzione sono identici al watt
-                        Text("Rete Bilanciata", color = Color.Gray)
+                        Text("Rete Bilanciata", color = GreyText)
                     }
                 } else if (isDrawingFromGrid) {
-                    // Stiamo prelevando dal contatore (Enel/Servizio Elettrico)
-                    Text("🔻 Prelievo Rete: $gridValue W", color = Color(0xFFFF5252)) // Rosso
+                    Text("🔻 Prelievo Rete: $gridValue W", color = Crimson, fontWeight = FontWeight.Bold)
                 } else {
-                    // Stiamo immettendo in rete il surplus
-                    Text("🌱 Immissione Rete: ${kotlin.math.abs(gridValue)} W", color = Color(0xFF81C784)) // Verde tenue
+                    Text("🌱 Immissione Rete: ${kotlin.math.abs(gridValue)} W", color = GreenActive, fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -296,21 +304,31 @@ fun ClimateCard(climate: ClimateState, onSetTemp: (Int) -> Unit) {
             // Header Info: AC Status
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End,
+                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(8.dp)
-                        .background(if (climate.isAcOn) SkyBlue else Color.Gray, CircleShape)
-                )
-                Spacer(modifier = Modifier.width(6.dp))
                 Text(
-                    text = if (climate.isAcOn) "AC ON" else "AC OFF",
-                    color = if (climate.isAcOn) SkyBlue else Color.Gray,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold
+                    text = "TERMOSTATO LIVING",
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = TealPrimary,
+                    letterSpacing = 0.5.sp
                 )
+                
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(8.dp)
+                            .background(if (climate.isAcOn) SkyBlue else Color.Gray, CircleShape)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = if (climate.isAcOn) "AC ON" else "AC OFF",
+                        color = if (climate.isAcOn) SkyBlue else Color.Gray,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
             }
 
             // Main Controls: Temp and Details
@@ -327,16 +345,20 @@ fun ClimateCard(climate: ClimateState, onSetTemp: (Int) -> Unit) {
                         fontSize = 42.sp,
                         fontWeight = FontWeight.Bold
                     )
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         IconButton(
                             onClick = { onSetTemp(climate.targetTemp - 1) },
-                            colors = IconButtonDefaults.filledIconButtonColors(containerColor = DarkSurfaceVariant)
+                            modifier = Modifier
+                                .size(40.dp)
+                                .background(DarkSurfaceVariant, CircleShape)
                         ) {
                             Icon(Icons.Default.Remove, contentDescription = "Sottrai", tint = Color.White)
                         }
                         IconButton(
                             onClick = { onSetTemp(climate.targetTemp + 1) },
-                            colors = IconButtonDefaults.filledIconButtonColors(containerColor = DarkSurfaceVariant)
+                            modifier = Modifier
+                                .size(40.dp)
+                                .background(DarkSurfaceVariant, CircleShape)
                         ) {
                             Icon(Icons.Default.Add, contentDescription = "Aggiungi", tint = Color.White)
                         }
@@ -350,6 +372,7 @@ fun ClimateCard(climate: ClimateState, onSetTemp: (Int) -> Unit) {
                 ) {
                     InfoRow(label = "MODO", value = climate.mode)
                     InfoRow(label = "FAN", value = climate.fanSpeed)
+                    InfoRow(label = "AUTO", value = if (climate.isAutoModeEnabled) "ON" else "OFF")
                 }
             }
 
@@ -363,100 +386,128 @@ fun ClimateCard(climate: ClimateState, onSetTemp: (Int) -> Unit) {
 
 @Composable
 fun VmcCard(vmc: VmcState, onSetSpeed: (Int) -> Unit) {
-    DashboardCard(title = "Ventilazione (VMC)", accentColor = SkyBlue) {
+    DashboardCard(title = "Ventilazione (VMC)", accentColor = TealPrimary) {
         Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            // Header Info: Bypass
-            if (vmc.bypassOpen) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(44.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(TealSecondary.copy(alpha = 0.25f)),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Surface(
-                        color = Emerald.copy(alpha = 0.15f),
+                    Text("🌀", fontSize = 24.sp)
+                }
+                Spacer(modifier = Modifier.width(14.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "AI CLIMATE MANAGEMENT ENGINE",
+                        color = TealPrimary,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 11.sp,
+                        letterSpacing = 1.sp
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = "Stato: ${vmc.reason}",
+                        color = OffWhite,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 13.sp
+                    )
+                }
+            }
+
+            Text(
+                text = "REGOLAZIONE MANUALE VELOCITÀ",
+                color = GreyText,
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 1.sp
+            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                for (speed in 1..4) {
+                    val isSelected = vmc.fanSpeed == speed
+                    Button(
+                        onClick = { onSetSpeed(speed) },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (isSelected) TealPrimary else DarkSurfaceVariant,
+                            contentColor = if (isSelected) DarkBackground else OffWhite
+                        ),
                         shape = RoundedCornerShape(8.dp),
-                        border = IconButtonDefaults.outlinedIconButtonBorder(enabled = true).copy(brush = androidx.compose.ui.graphics.SolidColor(Emerald))
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(40.dp)
                     ) {
-                        Text(
-                            text = "Bypass Aperto",
-                            color = Emerald,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold
-                        )
+                        Text("$speed", fontWeight = FontWeight.Bold)
                     }
                 }
             }
-
-            // Main Content: Speed Selection
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text("Velocità attuale", color = Color.Gray, fontSize = 14.sp)
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+            
+            if (vmc.bypassOpen) {
+                Surface(
+                    color = GreenActive.copy(alpha = 0.15f),
+                    shape = RoundedCornerShape(8.dp),
+                    border = BorderStroke(1.dp, GreenActive.copy(alpha = 0.5f))
                 ) {
-                    for (speed in 1..4) {
-                        SpeedChip(
-                            speed = speed,
-                            isSelected = vmc.fanSpeed == speed,
-                            onSelect = { onSetSpeed(speed) },
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
+                    Text(
+                        text = "Bypass Aperto (Free Cooling)",
+                        color = GreenActive,
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
-            }
-
-            // AI Footer
-            if (vmc.isAutoModeEnabled) {
-                AiReasonFooter(reason = vmc.reason)
             }
         }
-    }
-}
-
-@Composable
-fun EnergyMetricItem(
-    label: String,
-    value: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    iconColor: Color,
-    modifier: Modifier = Modifier
-) {
-    Column(
-        modifier = modifier,
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        Icon(icon, contentDescription = null, tint = iconColor, modifier = Modifier.size(28.dp))
-        Text(text = label, color = Color.Gray, fontSize = 12.sp, fontWeight = FontWeight.Medium)
-        Text(text = value, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
     }
 }
 
 @Composable
 fun EnvironmentCard(env: EnvironmentalMetrics) {
-    DashboardCard(title = "Condizioni Ambientali", accentColor = Emerald) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            text = "CONDIZIONI AMBIENTALI",
+            color = TealPrimary,
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Bold,
+            letterSpacing = 1.sp
+        )
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            EnvironmentItem(label = "Salotto", icon = "🛋️", temp = env.tempLiving, hum = env.humLiving, modifier = Modifier.weight(1f))
-            EnvironmentItem(label = "Notte", icon = "🛏️", temp = env.tempBedroom, hum = env.humBedroom, modifier = Modifier.weight(1f))
-            EnvironmentItem(label = "Esterno", icon = "🌳", temp = env.tempOutdoor, hum = env.humOutdoor, modifier = Modifier.weight(1f))
+            QuickMetricCard(
+                title = "SALOTTO",
+                temp = "${"%.1f".format(env.tempLiving)}°C",
+                hum = "${env.humLiving.toInt()}% UR",
+                status = "Humidex: ${"%.1f".format(env.humidexLiving)}",
+                modifier = Modifier.weight(1f),
+                color = TealPrimary
+            )
+            QuickMetricCard(
+                title = "NOTTE",
+                temp = "${"%.1f".format(env.tempBedroom)}°C",
+                hum = "${env.humBedroom.toInt()}% UR",
+                status = "Humidex: ${"%.1f".format(env.humidexBedroom)}",
+                modifier = Modifier.weight(1f),
+                color = BlueCool
+            )
+            QuickMetricCard(
+                title = "ESTERNO",
+                temp = "${"%.1f".format(env.tempOutdoor)}°C",
+                hum = "${env.humOutdoor.toInt()}% UR",
+                status = "Humidex: ${"%.1f".format(env.humidexOutdoor)}",
+                modifier = Modifier.weight(1f),
+                color = OrangeAccent
+            )
         }
-    }
-}
-
-@Composable
-fun EnvironmentItem(label: String, icon: String, temp: Float, hum: Float, modifier: Modifier = Modifier) {
-    Column(
-        modifier = modifier,
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(4.dp)
-    ) {
-        Text(icon, fontSize = 20.sp)
-        Text(label, color = Color.Gray, fontSize = 12.sp, fontWeight = FontWeight.Medium)
-        Text("${temp}°C", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
-        Text("$hum%", color = Color.Gray, fontSize = 11.sp)
     }
 }
 
@@ -464,46 +515,15 @@ fun EnvironmentItem(label: String, icon: String, temp: Float, hum: Float, modifi
 fun HeatingCard(heating: HeatingState) {
     DashboardCard(title = "Centrale Termica", accentColor = Sunset) {
         Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            HeatingRow(
-                label = "Acqua Sanitaria (ACS)",
-                temp = heating.acsBufferTemp,
-                icon = Icons.Default.WaterDrop,
-                accentColor = if (heating.acsBufferTemp > 45) Sunset else SkyBlue
-            )
-            HeatingRow(
-                label = "Puffer Riscaldamento (Alto)",
-                temp = heating.highBufferTemp,
-                icon = Icons.Default.HotTub,
-                accentColor = Sunset
-            )
-            HeatingRow(
-                label = "Puffer Riscaldamento (Basso)",
-                temp = heating.lowBufferTemp,
-                icon = Icons.Default.Waves,
-                accentColor = SkyBlue
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                PufferSondeItem(label = "Puffer ACS", value = "${"%.1f".format(heating.acsBufferTemp)}°C", color = OrangeAccent, modifier = Modifier.weight(1f))
+                PufferSondeItem(label = "Puffer Alto", value = "${"%.1f".format(heating.highBufferTemp)}°C", color = TealPrimary, modifier = Modifier.weight(1f))
+                PufferSondeItem(label = "Puffer Basso", value = "${"%.1f".format(heating.lowBufferTemp)}°C", color = BlueCool, modifier = Modifier.weight(1f))
+            }
         }
-    }
-}
-
-@Composable
-fun HeatingRow(label: String, temp: Float, icon: androidx.compose.ui.graphics.vector.ImageVector, accentColor: Color) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(icon, contentDescription = null, tint = accentColor, modifier = Modifier.size(20.dp))
-            Spacer(modifier = Modifier.width(12.dp))
-            Text(label, color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Medium)
-        }
-        Text(
-            text = "${temp}°C",
-            color = accentColor,
-            fontSize = 16.sp,
-            fontWeight = FontWeight.Bold
-        )
     }
 }
 
@@ -512,31 +532,33 @@ fun LightsCard(
     lightsMap: Map<String, Boolean>,
     onToggleLight: (String, Boolean) -> Unit
 ) {
-    val defaultLights = listOf(
-        "sala", "libreria", "cucina", "televisione",
-        "portico", "esterno", "luciPiscina", "pompaPiscina"
+    val lightList = listOf(
+        Triple("sala", "Sala", "🛋️"),
+        Triple("libreria", "Libreria", "📚"),
+        Triple("televisione", "Televisore", "📺"),
+        Triple("portico", "Portico", "🏡"),
+        Triple("cucina", "Cucina", "🍳"),
+        Triple("esterno", "Esterno", "🌳"),
+        Triple("luciPiscina", "Luci Piscina", "🏊"),
+        Triple("pompaPiscina", "Pompa Filtro", "🌀")
     )
 
     DashboardCard(title = "Illuminazione & Relè", accentColor = Amber) {
-        // Usiamo una griglia manuale per semplicità e controllo del layout dentro lo scroll
-        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            val chunks = defaultLights.chunked(2)
-            chunks.forEach { rowLights ->
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            lightList.chunked(2).forEach { pair ->
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    rowLights.forEach { lightName ->
-                        val isActive = lightsMap[lightName] ?: false
-                        LightButton(
-                            name = lightName,
+                    pair.forEach { (id, label, emoji) ->
+                        val isActive = lightsMap[id] ?: false
+                        LightToggleCard(
+                            label = label,
+                            emoji = emoji,
                             isActive = isActive,
-                            onClick = { onToggleLight(lightName, !isActive) },
+                            onToggle = { onToggleLight(id, !isActive) },
                             modifier = Modifier.weight(1f)
                         )
-                    }
-                    if (rowLights.size < 2) {
-                        Spacer(modifier = Modifier.weight(1f))
                     }
                 }
             }
@@ -545,68 +567,11 @@ fun LightsCard(
 }
 
 @Composable
-fun LightButton(
-    name: String,
-    isActive: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Surface(
-        onClick = onClick,
-        shape = RoundedCornerShape(12.dp),
-        color = if (isActive) Amber.copy(alpha = 0.2f) else DarkSurfaceVariant,
-        border = if (isActive) IconButtonDefaults.outlinedIconButtonBorder(enabled = true).copy(brush = androidx.compose.ui.graphics.SolidColor(Amber)) else null,
-        modifier = modifier
-    ) {
-        Row(
-            modifier = Modifier.padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Icon(
-                imageVector = if (isActive) Icons.Default.Lightbulb else Icons.Default.TipsAndUpdates,
-                contentDescription = null,
-                tint = if (isActive) Amber else Color.Gray,
-                modifier = Modifier.size(20.dp)
-            )
-            Text(
-                text = name.replaceFirstChar { it.uppercase() },
-                color = if (isActive) Color.White else Color.Gray,
-                fontSize = 14.sp,
-                fontWeight = if (isActive) FontWeight.Bold else FontWeight.Medium,
-                maxLines = 1
-            )
-        }
-    }
-}
-
-@Composable
 fun InfoRow(label: String, value: String) {
     Row(verticalAlignment = Alignment.CenterVertically) {
-        Text(text = label, color = Color.Gray, fontSize = 12.sp, fontWeight = FontWeight.Medium)
+        Text(text = label, color = GreyText, fontSize = 12.sp, fontWeight = FontWeight.Medium)
         Spacer(modifier = Modifier.width(8.dp))
         Text(text = value, color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
-    }
-}
-
-@Composable
-fun SpeedChip(speed: Int, isSelected: Boolean, onSelect: () -> Unit, modifier: Modifier = Modifier) {
-    Surface(
-        onClick = onSelect,
-        shape = RoundedCornerShape(12.dp),
-        color = if (isSelected) SkyBlue else DarkSurfaceVariant,
-        modifier = modifier
-    ) {
-        Box(
-            modifier = Modifier.padding(vertical = 12.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = speed.toString(),
-                color = if (isSelected) Color.White else Color.Gray,
-                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
-            )
-        }
     }
 }
 
@@ -641,103 +606,256 @@ fun AiReasonFooter(reason: String) {
 }
 
 @Composable
-fun DashboardCard(
+fun QuickMetricCard(
     title: String,
-    accentColor: Color,
-    content: @Composable () -> Unit
+    temp: String,
+    hum: String,
+    status: String,
+    color: Color,
+    modifier: Modifier = Modifier
 ) {
     Card(
-        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = DarkSurface),
-        modifier = Modifier.fillMaxWidth()
+        shape = RoundedCornerShape(10.dp),
+        border = BorderStroke(1.dp, color.copy(alpha = 0.2f)),
+        modifier = modifier
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    modifier = Modifier
-                        .size(4.dp, 16.dp)
-                        .background(accentColor, RoundedCornerShape(2.dp))
-                )
-                Spacer(modifier = Modifier.width(8.dp))
+        Column(
+            modifier = Modifier.padding(10.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = title,
+                fontSize = 9.sp,
+                fontWeight = FontWeight.Bold,
+                color = GreyText,
+                letterSpacing = 0.5.sp
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = temp,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.ExtraBold,
+                color = color
+            )
+            Text(
+                text = hum,
+                fontSize = 10.sp,
+                color = OffWhite.copy(alpha = 0.7f),
+                fontWeight = FontWeight.Medium
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = status,
+                fontSize = 10.sp,
+                color = color.copy(alpha = 0.8f),
+                fontWeight = FontWeight.Bold
+            )
+        }
+    }
+}
+
+@Composable
+fun LightToggleCard(
+    label: String,
+    emoji: String,
+    isActive: Boolean,
+    onToggle: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        onClick = onToggle,
+        colors = CardDefaults.cardColors(
+            containerColor = if (isActive) TealSecondary.copy(alpha = 0.15f) else DarkSurfaceVariant
+        ),
+        shape = RoundedCornerShape(12.dp),
+        border = BorderStroke(
+            width = 1.dp,
+            color = if (isActive) TealPrimary.copy(alpha = 0.4f) else Color.White.copy(alpha = 0.06f)
+        ),
+        modifier = modifier
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(emoji, fontSize = 24.sp)
+            Spacer(modifier = Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = title,
-                    color = Color.White,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
+                    text = label,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = if (isActive) Color.White else OffWhite.copy(alpha = 0.8f)
+                )
+                Text(
+                    text = if (isActive) "ACCESO" else "SPENTO",
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = if (isActive) TealPrimary else GreyText
                 )
             }
-            Spacer(modifier = Modifier.height(16.dp))
-            content()
+            // Tiny status indicator
+            Box(
+                modifier = Modifier
+                    .size(10.dp)
+                    .clip(CircleShape)
+                    .background(if (isActive) TealPrimary else Color.Transparent)
+                    .border(1.dp, if (isActive) TealPrimary else GreyText.copy(alpha = 0.4f), CircleShape)
+            )
+        }
+    }
+}
+
+@Composable
+fun PufferSondeItem(
+    label: String,
+    value: String,
+    color: Color,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier
+            .clip(RoundedCornerShape(8.dp))
+            .background(DarkSurfaceVariant)
+            .padding(8.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(label, fontSize = 9.sp, fontWeight = FontWeight.Bold, color = GreyText)
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(value, fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, color = color)
+    }
+}
+
+@Composable
+fun AutomationSwitchRow(
+    label: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(label, color = OffWhite, fontWeight = FontWeight.Medium, fontSize = 13.sp)
+        Switch(
+            checked = checked,
+            onCheckedChange = onCheckedChange,
+            colors = SwitchDefaults.colors(
+                checkedThumbColor = TealPrimary,
+                checkedTrackColor = TealSecondary.copy(alpha = 0.5f)
+            )
+        )
+    }
+}
+
+@Composable
+fun DashboardCard(
+    title: String,
+    accentColor: Color = TealPrimary,
+    content: @Composable () -> Unit
+) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Text(
+            text = title.uppercase(),
+            color = accentColor,
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Bold,
+            letterSpacing = 1.sp,
+            modifier = Modifier.padding(bottom = 8.dp)
+        )
+        Card(
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = DarkSurface),
+            border = BorderStroke(1.dp, Color.White.copy(alpha = 0.08f)),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                content()
+            }
         }
     }
 }
 
 @Composable
 fun SystemLogsCard(logs: List<LogEvent>) {
-    DashboardCard(title = "Telemetria & Diario AI", accentColor = Amber) {
-        Column(
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Text(
+            text = "LOG EVENTI ENGINE CLIMA AI & DOMOTICA",
+            color = TealPrimary,
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Bold,
+            letterSpacing = 1.sp,
+            modifier = Modifier.padding(bottom = 8.dp)
+        )
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .heightIn(max = 300.dp)
+                .height(300.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(Color(0xFF070707))
+                .border(1.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(12.dp))
+                .padding(12.dp)
         ) {
             if (logs.isEmpty()) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("Nessun evento telemetrico", color = Color.Gray, fontSize = 12.sp)
+                    Text("Nessun log registrato.", color = GreyText, fontSize = 12.sp)
                 }
             } else {
                 Column(
-                    modifier = Modifier.verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     logs.forEach { log ->
-                        AiLogRow(log)
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(if (log.isSystemEnabled) Color(0x05FFFFFF) else Color(0x0FFF1744))
+                                .padding(8.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(
+                                    text = "[${log.timestamp.format(DateTimeFormatter.ofPattern("HH:mm:ss"))}]",
+                                    color = TealPrimary,
+                                    fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    text = log.eventType,
+                                    color = if (log.isSystemEnabled) OrangeAccent else Color.Red,
+                                    fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.ExtraBold
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = log.message,
+                                color = OffWhite,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(modifier = Modifier.height(1.dp))
+                            Text(
+                                text = log.details,
+                                color = GreyText,
+                                fontSize = 11.sp,
+                                lineHeight = 14.sp
+                            )
+                        }
                     }
                 }
             }
-        }
-    }
-}
-
-@Composable
-fun AiLogRow(log: LogEvent) {
-    val accentColor = when (log.eventType) {
-        "AI_ENGINE" -> if (log.message.contains("CAMBIO")) SkyBlue else Emerald
-        "ACTION" -> Emerald
-        "ERROR" -> Crimson
-        else -> Amber
-    }
-
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        // Time Column
-        Text(
-            text = log.timestamp.format(DateTimeFormatter.ofPattern("HH:mm")),
-            color = Color.Gray,
-            fontSize = 12.sp,
-            fontWeight = FontWeight.Medium,
-            modifier = Modifier.padding(top = 2.dp)
-        )
-
-        // Content Column
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = log.message,
-                color = Color.White,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Bold
-            )
-            Spacer(modifier = Modifier.height(2.dp))
-            Text(
-                text = log.details,
-                color = accentColor.copy(alpha = 0.9f),
-                fontSize = 12.sp,
-                style = MaterialTheme.typography.bodySmall.copy(
-                    fontStyle = androidx.compose.ui.text.font.FontStyle.Italic
-                ),
-                fontWeight = FontWeight.Medium
-            )
         }
     }
 }
@@ -757,33 +875,38 @@ fun ConnectionIndicator(status: ConnectionStatus) {
         ConnectionStatus.DISCONNECTED -> Icons.Default.PowerOff
     }
     
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
+    Box(
         modifier = Modifier
-            .background(color.copy(alpha = 0.1f), RoundedCornerShape(8.dp))
+            .background(color.copy(alpha = 0.15f), RoundedCornerShape(8.dp))
             .padding(horizontal = 8.dp, vertical = 4.dp)
     ) {
-        if (status == ConnectionStatus.CONNECTING) {
-            CircularProgressIndicator(
-                modifier = Modifier.size(12.dp),
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center
+        ) {
+            if (status == ConnectionStatus.CONNECTING) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(12.dp),
+                    color = color,
+                    strokeWidth = 2.dp
+                )
+            } else {
+                Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(14.dp))
+            }
+            Spacer(modifier = Modifier.width(6.dp))
+            Text(
+                text = when(status) {
+                    ConnectionStatus.CONNECTED_LOCAL -> "LOCALE"
+                    ConnectionStatus.CONNECTED_REMOTE -> "REMOTO"
+                    ConnectionStatus.CONNECTING -> "..."
+                    ConnectionStatus.DISCONNECTED -> "OFF"
+                },
                 color = color,
-                strokeWidth = 2.dp
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Bold,
+                maxLines = 1
             )
-        } else {
-            Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(14.dp))
         }
-        Spacer(modifier = Modifier.width(6.dp))
-        Text(
-            text = when(status) {
-                ConnectionStatus.CONNECTED_LOCAL -> "LOCALE"
-                ConnectionStatus.CONNECTED_REMOTE -> "REMOTO"
-                ConnectionStatus.CONNECTING -> "Connessione..."
-                ConnectionStatus.DISCONNECTED -> "OFFLINE"
-            },
-            color = color,
-            fontSize = 11.sp,
-            fontWeight = FontWeight.Bold
-        )
     }
 }
 
@@ -851,6 +974,111 @@ fun SettingsDialog(
 }
 
 @Composable
+fun PowerGauge(
+    value: Int,
+    maxLimit: Int,
+    title: String,
+    unit: String,
+    colors: List<Color>,
+    modifier: Modifier = Modifier
+) {
+    val animatedValue by animateFloatAsState(
+        targetValue = value.toFloat(),
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
+        label = "GaugeAnimation"
+    )
+
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .aspectRatio(1.4f),
+            contentAlignment = Alignment.Center
+        ) {
+            Canvas(modifier = Modifier.fillMaxSize()) {
+                val strokeWidth = 8.dp.toPx()
+                val centerX = size.width / 2
+                val centerY = size.height / 0.8f // Sposta il centro in basso per un arco più ampio
+                val radius = size.width * 0.45f
+                
+                // Background Arc
+                drawArc(
+                    color = Color.White.copy(alpha = 0.05f),
+                    startAngle = 160f,
+                    sweepAngle = 220f,
+                    useCenter = false,
+                    topLeft = androidx.compose.ui.geometry.Offset(centerX - radius, centerY - radius),
+                    size = androidx.compose.ui.geometry.Size(radius * 2, radius * 2),
+                    style = androidx.compose.ui.graphics.drawscope.Stroke(width = strokeWidth, cap = androidx.compose.ui.graphics.StrokeCap.Round)
+                )
+
+                // Foreground Arc
+                drawArc(
+                    brush = Brush.horizontalGradient(colors),
+                    startAngle = 160f,
+                    sweepAngle = (animatedValue / maxLimit).coerceIn(0f, 1f) * 220f,
+                    useCenter = false,
+                    topLeft = androidx.compose.ui.geometry.Offset(centerX - radius, centerY - radius),
+                    size = androidx.compose.ui.geometry.Size(radius * 2, radius * 2),
+                    style = androidx.compose.ui.graphics.drawscope.Stroke(width = strokeWidth, cap = androidx.compose.ui.graphics.StrokeCap.Round)
+                )
+
+                // Needle
+                val needleAngle = 160f + (animatedValue / maxLimit).coerceIn(0f, 1f) * 220f
+                val angleRad = Math.toRadians(needleAngle.toDouble())
+                val needleLen = radius * 0.9f
+                
+                drawLine(
+                    color = Color.White,
+                    start = androidx.compose.ui.geometry.Offset(centerX, centerY),
+                    end = androidx.compose.ui.geometry.Offset(
+                        (centerX + kotlin.math.cos(angleRad) * needleLen).toFloat(),
+                        (centerY + kotlin.math.sin(angleRad) * needleLen).toFloat()
+                    ),
+                    strokeWidth = 3.dp.toPx(),
+                    cap = androidx.compose.ui.graphics.StrokeCap.Round
+                )
+                
+                drawCircle(
+                    color = Color.White,
+                    radius = 4.dp.toPx(),
+                    center = androidx.compose.ui.geometry.Offset(centerX, centerY)
+                )
+            }
+            
+            Column(
+                modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 4.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = "$value",
+                    color = Color.White,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.ExtraBold
+                )
+                Text(
+                    text = unit,
+                    color = GreyText,
+                    fontSize = 9.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
+        Text(
+            text = title,
+            color = GreyText,
+            fontSize = 9.sp,
+            fontWeight = FontWeight.Bold,
+            letterSpacing = 0.5.sp,
+            modifier = Modifier.padding(top = 4.dp)
+        )
+    }
+}
+
+@Composable
 fun SettingsField(
     label: String,
     value: String,
@@ -871,4 +1099,25 @@ fun SettingsField(
         ),
         visualTransformation = if (isPassword) androidx.compose.ui.text.input.PasswordVisualTransformation() else androidx.compose.ui.text.input.VisualTransformation.None
     )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Preview(showBackground = true, backgroundColor = 0xFF121212)
+@Composable
+fun DashboardPreview() {
+    ZaraDashboardAppTheme(darkTheme = true) {
+        Column(
+            modifier = Modifier
+                .background(DarkBackground)
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            EnergyCard(energy = EnergyMetrics(productionFvW = 4500, consumptionHomeW = 1200, powerwallSoc = 85, surplusW = 3300))
+            ClimateCard(climate = ClimateState(targetTemp = 22, isAcOn = true, reason = "Free Cooling"), onSetTemp = {})
+            LightsCard(lightsMap = mapOf("sala" to true, "cucina" to false), onToggleLight = { _, _ -> })
+            EnvironmentCard(env = EnvironmentalMetrics(tempLiving = 21.5f, humLiving = 45f, tempBedroom = 19.8f, humBedroom = 50f, tempOutdoor = 12.0f, humOutdoor = 65f))
+            HeatingCard(heating = HeatingState(acsBufferTemp = 48.5f, highBufferTemp = 55.0f, lowBufferTemp = 32.0f))
+        }
+    }
 }

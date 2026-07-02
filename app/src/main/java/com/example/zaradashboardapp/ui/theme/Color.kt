@@ -21,3 +21,12 @@ val SkyBlue = Color(0xFF3498DB)
 val Sunset = Color(0xFFE67E22)
 val Amber = Color(0xFFF1C40F)
 val Crimson = Color(0xFFE74C3C)
+
+// Other App Colors
+val TealPrimary = Color(0xFF00E5FF)
+val TealSecondary = Color(0xFF00B8D4)
+val GreenActive = Color(0xFF00C853)
+val GreyText = Color(0xFF90A4AE)
+val BlueCool = Color(0xFF29B6F6)
+val OrangeAccent = Color(0xFFFF6D00)
+val OffWhite = Color(0xFFECEFF1)
