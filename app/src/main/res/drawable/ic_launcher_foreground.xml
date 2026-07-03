@@ -4,24 +4,24 @@
     android:viewportWidth="108"
     android:viewportHeight="108">
 
-    <!-- Smartphone Outline (Yellow Neon) -->
+    <!-- Smartphone Outline (Purple Neon) -->
     <!-- Centered roughly in the 108x108 safe zone (66x66 is the safe area for adaptive icons) -->
     <path
         android:pathData="M35,20 H73 Q78,20 78,25 V83 Q78,88 73,88 H35 Q30,88 30,83 V25 Q30,20 35,20 Z"
-        android:strokeColor="#FFEE58"
+        android:strokeColor="#E040FB"
         android:strokeWidth="2"
         android:fillColor="#00000000" />
 
     <!-- Top line of smartphone -->
     <path
         android:pathData="M30,30 H78"
-        android:strokeColor="#FFEE58"
+        android:strokeColor="#E040FB"
         android:strokeWidth="1.5" />
 
     <!-- Bottom line of smartphone -->
     <path
         android:pathData="M30,78 H78"
-        android:strokeColor="#FFEE58"
+        android:strokeColor="#E040FB"
         android:strokeWidth="1.5" />
 
     <!-- Bottom home indicator/button -->
