@@ -503,7 +503,7 @@ fun EnvironmentCard(env: EnvironmentalMetrics) {
                 title = "ESTERNO",
                 temp = "${"%.1f".format(env.tempOutdoor)}°C",
                 hum = "${env.humOutdoor.toInt()}% UR",
-                status = "Humidex: ${"%.1f".format(env.humidexOutdoor)}",
+                status = "",
                 modifier = Modifier.weight(1f),
                 color = OrangeAccent
             )
@@ -1050,19 +1050,19 @@ fun PowerGauge(
             }
             
             Column(
-                modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 4.dp),
+                modifier = Modifier.align(Alignment.Center).padding(top = 12.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
                     text = "$value",
                     color = Color.White,
-                    fontSize = 16.sp,
+                    fontSize = 20.sp,
                     fontWeight = FontWeight.ExtraBold
                 )
                 Text(
                     text = unit,
                     color = GreyText,
-                    fontSize = 9.sp,
+                    fontSize = 10.sp,
                     fontWeight = FontWeight.Bold
                 )
             }

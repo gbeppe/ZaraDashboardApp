@@ -237,6 +237,14 @@ class DashboardViewModel(
                     val valFloat = message.toFloatOrNull() ?: 0f
                     _uiState.update { it.copy(env = it.env.copy(humLiving = valFloat)) }
                 }
+                topic.contains("/env/humidexLiving") -> {
+                    val valFloat = message.toFloatOrNull() ?: 0f
+                    _uiState.update { it.copy(env = it.env.copy(humidexLiving = valFloat)) }
+                }
+                topic.contains("/env/humidexBedroom") -> {
+                    val valFloat = message.toFloatOrNull() ?: 0f
+                    _uiState.update { it.copy(env = it.env.copy(humidexBedroom = valFloat)) }
+                }
 
                 // Heating / Puffer Data
                 topic.contains("/acsPufferTemp") -> {
