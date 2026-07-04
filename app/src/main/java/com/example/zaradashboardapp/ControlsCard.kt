@@ -74,8 +74,8 @@ fun ControlsCard(
                 Slider(
                     value = controls.velocitaMaxVmcNotte,
                     onValueChange = { onUpdate("velocitaMaxVmcNotte", it) },
-                    valueRange = 1f..3f,
-                    steps = 1,
+                    valueRange = 1f..4f,
+                    steps = 2,
                     colors = SliderDefaults.colors(
                         thumbColor = SkyBlue,
                         activeTrackColor = SkyBlue,
