@@ -46,9 +46,10 @@ fun ControlsCard(
                 onValueChange = { onUpdate("sogliaHumidexNotte", it) }
             )
 
-            ControlStepperRow(
+            FloatStepperRow(
                 label = "Soglia Emergenza Humidex",
                 value = controls.sogliaEmergenzaHumidex,
+                step = 0.5f,
                 onValueChange = { onUpdate("sogliaEmergenzaHumidex", it) }
             )
 
@@ -149,6 +150,43 @@ fun ControlStepperRow(
                 modifier = Modifier.size(32.dp).background(DarkSurfaceVariant, CircleShape)
             ) {
                 Icon(Icons.Default.Add, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+            }
+        }
+    }
+}
+
+@Composable
+fun FloatStepperRow(label: String, value: Float, step: Float, onValueChange: (Float) -> Unit) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
+    ) {
+        Text(text = label, color = OffWhite, fontSize = 13.sp, modifier = Modifier.weight(1f))
+        
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            IconButton(
+                onClick = { onValueChange(value - step) },
+                modifier = Modifier.size(32.dp).background(DarkSurfaceVariant, CircleShape)
+            ) {
+                Icon(Icons.Default.Remove, contentDescription = "Meno", tint = Color.White, modifier = Modifier.size(16.dp))
+            }
+            Text(
+                text = String.format(java.util.Locale.US, "%.1f", value),
+                color = Color.White,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.widthIn(min = 32.dp),
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+            )
+            IconButton(
+                onClick = { onValueChange(value + step) },
+                modifier = Modifier.size(32.dp).background(DarkSurfaceVariant, CircleShape)
+            ) {
+                Icon(Icons.Default.Add, contentDescription = "Più", tint = Color.White, modifier = Modifier.size(16.dp))
             }
         }
     }

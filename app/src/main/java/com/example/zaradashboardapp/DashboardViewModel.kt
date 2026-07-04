@@ -101,7 +101,7 @@ data class ControlsState(
     val velocitaMaxVmcNotte: Float = 1f,
     val tolleranzaDeficit: Int = 20,
     val gestioneAcMattinoSolar: Boolean = false,
-    val sogliaEmergenzaHumidex: Int = 30
+    val sogliaEmergenzaHumidex: Float = 30.0f
 )
 
 data class SystemState(
@@ -186,7 +186,7 @@ class DashboardViewModel(
                     "velocitaMaxVmcNotte" -> state.controls.copy(velocitaMaxVmcNotte = value as Float)
                     "tolleranzaDeficit" -> state.controls.copy(tolleranzaDeficit = value as Int)
                     "gestioneAcMattinoSolar" -> state.controls.copy(gestioneAcMattinoSolar = value as Boolean)
-                    "sogliaEmergenzaHumidex" -> state.controls.copy(sogliaEmergenzaHumidex = value as Int)
+                    "sogliaEmergenzaHumidex" -> state.controls.copy(sogliaEmergenzaHumidex = value as Float)
                     else -> state.controls
                 }
                 state.copy(controls = newControls)
@@ -334,7 +334,7 @@ class DashboardViewModel(
                     _uiState.update { it.copy(controls = it.controls.copy(gestioneAcMattinoSolar = value)) }
                 }
                 topic.contains("emergency_humidex_away") -> {
-                    val value = message.toFloatOrNull()?.toInt() ?: 30
+                    val value = message.toFloatOrNull() ?: 30.0f
                     _uiState.update { it.copy(controls = it.controls.copy(sogliaEmergenzaHumidex = value)) }
                 }
                 
