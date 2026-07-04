@@ -47,9 +47,9 @@ fun ClimateScreen(
         // Section: Stove (Fireplace)
         StoveCard(
             stoveState = uiState.stove,
-            onPowerToggle = { onStovePowerToggle(it) },
-            onModeChange = { onStoveModeChange(it) },
-            onLevelChange = { onStoveLevelChange(it) }
+            onPowerToggle = onStovePowerToggle,
+            onModeChange = onStoveModeChange,
+            onLevelChange = onStoveLevelChange
         )
 
         // Section: Heating
