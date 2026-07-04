@@ -42,21 +42,13 @@ fun StoveCard(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                // Cerchio con Fiamma (Stato)
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier
-                        .size(64.dp)
-                        .clip(CircleShape)
-                        .background(if (stoveState.acceso) Color(0xFFFF5722) else Color.DarkGray)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.LocalFireDepartment,
-                        contentDescription = null,
-                        tint = Color.White,
-                        modifier = Modifier.size(32.dp)
-                    )
-                }
+                // Icona Fiamma (Stato) - Colore dinamico senza sfondo
+                Icon(
+                    imageVector = Icons.Default.LocalFireDepartment,
+                    contentDescription = null,
+                    tint = if (stoveState.acceso) Color(0xFFFF5722) else Color.DarkGray,
+                    modifier = Modifier.size(56.dp)
+                )
 
                 Column(modifier = Modifier.weight(1f)) {
                     Row(
