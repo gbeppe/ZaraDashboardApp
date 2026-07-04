@@ -24,10 +24,41 @@ import java.util.UUID
 
 @JsonClass(generateAdapter = true)
 data class AiTelemetryPayload(
-    @Json(name = "data_ora") val dataOra: String,
-    @Json(name = "evento") val evento: String,
-    @Json(name = "dettaglio_comandi") val dettaglioComandi: DettaglioComandi,
-    @Json(name = "stato_ac_attuale") val statoAcAttuale: String? = null
+    @Json(name = "data_ora_formattata") val dataOra: String? = null,
+    @Json(name = "metriche_elettriche") val metricheElettriche: MetricheElettriche? = null,
+    @Json(name = "metriche_ambientali") val ambienti: AmbientiData? = null,
+    @Json(name = "stato_condizionatore") val clima: ClimaData? = null,
+    @Json(name = "stato_vmc") val vmc: VmcData? = null
+)
+
+@JsonClass(generateAdapter = true)
+data class MetricheElettriche(
+    @Json(name = "produzione_fv_w") val produzioneFvW: Float? = null,
+    @Json(name = "consumo_casa_w") val consumoCasaW: Float? = null,
+    @Json(name = "surplus_w") val surplusW: Float? = null,
+    @Json(name = "powerwall_soc_percent") val powerwallSocPercent: Float? = null,
+    @Json(name = "consumo_ac_w") val consumoAcW: Float? = null
+)
+
+@JsonClass(generateAdapter = true)
+data class ClimaData(
+    @Json(name = "stato_attuale") val statoAttuale: String? = null,
+    @Json(name = "temperatura_impostata_c") val targetTemp: Float? = null,
+    @Json(name = "modalita_aria") val modalitaAria: String? = null
+)
+
+@JsonClass(generateAdapter = true)
+data class VmcData(
+    @Json(name = "velocita_attuale") val fanSpeed: Int? = null,
+    @Json(name = "motivo_logica") val motivoLogica: String? = null
+)
+
+@JsonClass(generateAdapter = true)
+data class AmbientiData(
+    @Json(name = "temperatura_c") val tempLiving: Float? = null,
+    @Json(name = "humidex_living") val humidexLiving: Float? = null,
+    @Json(name = "temp_cameraMatrimoniale") val tempBedroom: Float? = null,
+    @Json(name = "humidex_bedroom") val humidexBedroom: Float? = null
 )
 
 @JsonClass(generateAdapter = true)
@@ -104,6 +135,12 @@ data class ControlsState(
     val sogliaEmergenzaHumidex: Float = 30.0f
 )
 
+data class StoveState(
+    val acceso: Boolean = false,
+    val modalita: String = "sconosciuta",
+    val potenza: Int = 1
+)
+
 data class SystemState(
     val isGlobalEnabled: Boolean = true,
     val isHolidayMode: Boolean = false,
@@ -113,9 +150,13 @@ data class SystemState(
     val climate: ClimateState = ClimateState(),
     val vmc: VmcState = VmcState(),
     val controls: ControlsState = ControlsState(),
+    val stove: StoveState = StoveState(),
     val lights: Map<String, Boolean> = emptyMap(),
     val recentLogs: List<LogEvent> = emptyList(),
-    val connectionStatus: ConnectionStatus = ConnectionStatus.DISCONNECTED
+    val connectionStatus: ConnectionStatus = ConnectionStatus.DISCONNECTED,
+    val batteryHistory: List<Float> = emptyList(),
+    val humidexHistory: List<Float> = emptyList(),
+    val surplusHistory: List<Float> = emptyList()
 )
 
 // --- ViewModel ---
@@ -214,6 +255,7 @@ class DashboardViewModel(
      * Gestisce i messaggi MQTT in arrivo con mappatura dei topic flat e JSON.
      */
     fun handleMqttMessage(topic: String, message: String) {
+        val baseTopic = settingsManager.getSettings().baseTopic
         viewModelScope.launch {
             when {
                 topic.contains("/energy/grid") -> {
@@ -222,7 +264,12 @@ class DashboardViewModel(
                 }
                 topic.contains("/energy/surplus") -> {
                     val surplus = message.toFloatOrNull() ?: 0f
-                    _uiState.update { it.copy(energy = it.energy.copy(surplusW = surplus.toInt())) }
+                    _uiState.update { 
+                        it.copy(
+                            energy = it.energy.copy(surplusW = surplus.toInt()),
+                            surplusHistory = it.surplusHistory.appendWithLimit(surplus)
+                        )
+                    }
                 }
                 topic.contains("/energy/production") -> {
                     val prod = message.toFloatOrNull() ?: 0f
@@ -232,13 +279,18 @@ class DashboardViewModel(
                     val cons = message.toFloatOrNull() ?: 0f
                     _uiState.update { it.copy(energy = it.energy.copy(consumptionHomeW = cons.toInt())) }
                 }
-                topic.contains("/energy/battery") -> {
+                topic.contains("$baseTopic/casa/clima/stato_completo/metriche_elettriche.powerwall_soc_percent") -> {
                     // Supponendo che la batteria sia in percentuale (es. 85 per 85%)
                     val batt = message.toFloatOrNull()?.toInt() ?: 0
-                    _uiState.update { it.copy(energy = it.energy.copy(powerwallSoc = batt)) }
+                    _uiState.update { 
+                        it.copy(
+                            energy = it.energy.copy(powerwallSoc = batt),
+                            batteryHistory = it.batteryHistory.appendWithLimit(batt.toFloat())
+                        )
+                    }
                 }
                 // JSON Completo Telemetria AI
-                topic == "casa/clima/stato_completo" -> {
+                topic == "$baseTopic/casa/clima/stato_completo" -> {
                     parseAiTelemetry(message)
                 }
 
@@ -287,7 +339,12 @@ class DashboardViewModel(
                 }
                 topic.contains("/env/humidexLiving") -> {
                     val valFloat = message.toFloatOrNull() ?: 0f
-                    _uiState.update { it.copy(env = it.env.copy(humidexLiving = valFloat)) }
+                    _uiState.update { 
+                        it.copy(
+                            env = it.env.copy(humidexLiving = valFloat),
+                            humidexHistory = it.humidexHistory.appendWithLimit(valFloat)
+                        )
+                    }
                 }
                 topic.contains("/env/humidexBedroom") -> {
                     val valFloat = message.toFloatOrNull() ?: 0f
@@ -347,6 +404,19 @@ class DashboardViewModel(
                         updatedLights[lightName] = isOn
                         it.copy(lights = updatedLights)
                     }
+                }
+
+                // Stove Data
+                topic.endsWith("casa/stufa/stat/acceso") -> {
+                    val isOn = message == "on" || message == "true" || message == "1"
+                    _uiState.update { it.copy(stove = it.stove.copy(acceso = isOn)) }
+                }
+                topic.endsWith("casa/stufa/stat/modalita") -> {
+                    _uiState.update { it.copy(stove = it.stove.copy(modalita = message.lowercase())) }
+                }
+                topic.endsWith("casa/stufa/stat/potenza") -> {
+                    val level = message.toIntOrNull() ?: 1
+                    _uiState.update { it.copy(stove = it.stove.copy(potenza = level)) }
                 }
             }
             
@@ -431,10 +501,49 @@ class DashboardViewModel(
         }
     }
 
+    /**
+     * Gestione comandi Stufa/Caminetto Palazzetti
+     */
+    fun setStovePower(isOn: Boolean) {
+        viewModelScope.launch {
+            val payload = if (isOn) "on" else "off"
+            mqttManager.publish("${getSettings().baseTopic}/casa/stufa/cmnd/power", payload)
+            _uiState.update { it.copy(stove = it.stove.copy(acceso = isOn)) }
+            addLog("ACTION", "Caminetto", "Power: $payload")
+        }
+    }
+
+    fun setStoveMode(mode: String) {
+        viewModelScope.launch {
+            mqttManager.publish("${getSettings().baseTopic}/casa/stufa/cmnd/modalita", mode)
+            _uiState.update { it.copy(stove = it.stove.copy(modalita = mode)) }
+            addLog("ACTION", "Caminetto", "Modalità: $mode")
+        }
+    }
+
+    fun setStoveLevel(level: Int) {
+        viewModelScope.launch {
+            mqttManager.publish("${getSettings().baseTopic}/casa/stufa/cmnd/potenza", level.toString())
+            _uiState.update { it.copy(stove = it.stove.copy(potenza = level)) }
+            addLog("ACTION", "Caminetto", "Potenza: $level")
+        }
+    }
+
+    /**
+     * Invia un comando alla stufa (obsoleto - sostituito dai comandi specifici sopra).
+     */
+    fun sendStoveCommand(button: String) {
+        viewModelScope.launch {
+            mqttManager.publish("casa/stufa/cmd/pulsante", button, retained = false)
+            addLog("ACTION", "Stove Command", "Sent button: $button")
+        }
+    }
+
     // --- Private Helpers ---
 
     /**
      * Aggiunge un log locale allo stato, mantenendo solo gli ultimi 20 log.
+     * I nuovi log vengono aggiunti in fondo per evitare salti della lista durante lo scroll.
      */
     private fun addLog(type: String, message: String, details: String) {
         val newLog = LogEvent(
@@ -445,7 +554,7 @@ class DashboardViewModel(
         )
         
         _uiState.update { currentState ->
-            val updatedLogs = (listOf(newLog) + currentState.recentLogs).take(20)
+            val updatedLogs = (currentState.recentLogs + listOf(newLog)).takeLast(20)
             currentState.copy(recentLogs = updatedLogs)
         }
     }
@@ -456,29 +565,91 @@ class DashboardViewModel(
                 val payload = telemetryAdapter.fromJson(json)
                 payload?.let { data ->
                     _uiState.update { state ->
-                        state.copy(
-                            climate = state.climate.copy(
-                                isAcOn = data.statoAcAttuale == "ON",
-                                reason = data.dettaglioComandi.motivoLogica
-                            ),
-                            vmc = state.vmc.copy(
-                                reason = data.dettaglioComandi.motivoLogica
+                        var newState = state
+
+                        // 1. Metriche Elettriche
+                        data.metricheElettriche?.let { metrics ->
+                            val currentEnergy = newState.energy.copy(
+                                productionFvW = metrics.produzioneFvW?.toInt() ?: newState.energy.productionFvW,
+                                consumptionHomeW = metrics.consumoCasaW?.toInt() ?: newState.energy.consumptionHomeW,
+                                surplusW = metrics.surplusW?.toInt() ?: newState.energy.surplusW,
+                                powerwallSoc = metrics.powerwallSocPercent?.toInt() ?: newState.energy.powerwallSoc
                             )
-                        )
+                            
+                            var newBatteryHistory = newState.batteryHistory
+                            metrics.powerwallSocPercent?.let { soc ->
+                                newBatteryHistory = newBatteryHistory.appendWithLimit(soc)
+                            }
+                            
+                            var newSurplusHistory = newState.surplusHistory
+                            metrics.surplusW?.let { surplus ->
+                                newSurplusHistory = newSurplusHistory.appendWithLimit(surplus)
+                            }
+
+                            newState = newState.copy(
+                                energy = currentEnergy,
+                                batteryHistory = newBatteryHistory,
+                                surplusHistory = newSurplusHistory
+                            )
+                        }
+
+                        // 2. Clima
+                        data.clima?.let { clima ->
+                            newState = newState.copy(
+                                climate = newState.climate.copy(
+                                    isAcOn = clima.statoAttuale != "OFF",
+                                    mode = clima.modalitaAria ?: newState.climate.mode,
+                                    targetTemp = clima.targetTemp?.toInt() ?: newState.climate.targetTemp
+                                )
+                            )
+                        }
+
+                        // 3. VMC
+                        data.vmc?.let { vmc ->
+                            newState = newState.copy(
+                                vmc = newState.vmc.copy(
+                                    fanSpeed = vmc.fanSpeed ?: newState.vmc.fanSpeed,
+                                    reason = vmc.motivoLogica ?: newState.vmc.reason
+                                )
+                            )
+                        }
+
+                        // 4. Ambienti
+                        data.ambienti?.let { env ->
+                            val currentEnv = newState.env.copy(
+                                tempLiving = env.tempLiving ?: newState.env.tempLiving,
+                                humidexLiving = env.humidexLiving ?: newState.env.humidexLiving,
+                                tempBedroom = env.tempBedroom ?: newState.env.tempBedroom,
+                                humidexBedroom = env.humidexBedroom ?: newState.env.humidexBedroom
+                            )
+                            
+                            var newHumidexHistory = newState.humidexHistory
+                            env.humidexLiving?.let { humidex ->
+                                newHumidexHistory = newHumidexHistory.appendWithLimit(humidex)
+                            }
+
+                            newState = newState.copy(
+                                env = currentEnv,
+                                humidexHistory = newHumidexHistory
+                            )
+                        }
+
+                        newState
                     }
-                    
-                    // Aggiungiamo un log per l'evento ricevuto
-                    val timePrefix = data.dataOra.split(" ").lastOrNull()?.take(5) ?: ""
-                    addLog(
-                        type = "AI_ENGINE",
-                        message = data.evento.replace("_", " "),
-                        details = "[$timePrefix] ${data.dettaglioComandi.motivoLogica}"
-                    )
                 }
             } catch (e: Exception) {
                 Log.e("DashboardViewModel", "Error parsing AI telemetry", e)
                 addLog("ERROR", "JSON Parsing Failed", e.message ?: "Unknown error")
             }
         }
+    }
+
+    private fun <T> List<T>.appendWithLimit(item: T, limit: Int = 100): List<T> {
+        val newList = this.toMutableList()
+        newList.add(item)
+        if (newList.size > limit) {
+            newList.removeAt(0)
+        }
+        return newList
     }
 }

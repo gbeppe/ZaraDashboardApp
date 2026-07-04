@@ -15,7 +15,10 @@ fun ClimateScreen(
     uiState: SystemState,
     onSetClimateTemp: (Int) -> Unit,
     onSetVmcSpeed: (Int) -> Unit,
-    onUpdateControl: (String, Any) -> Unit
+    onUpdateControl: (String, Any) -> Unit,
+    onStovePowerToggle: (Boolean) -> Unit,
+    onStoveModeChange: (String) -> Unit,
+    onStoveLevelChange: (Int) -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -39,6 +42,14 @@ fun ClimateScreen(
         VmcCard(
             vmc = uiState.vmc,
             onSetSpeed = onSetVmcSpeed
+        )
+
+        // Section: Stove (Fireplace)
+        StoveCard(
+            stoveState = uiState.stove,
+            onPowerToggle = { onStovePowerToggle(it) },
+            onModeChange = { onStoveModeChange(it) },
+            onLevelChange = { onStoveLevelChange(it) }
         )
 
         // Section: Heating

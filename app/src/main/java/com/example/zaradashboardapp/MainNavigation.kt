@@ -97,11 +97,14 @@ fun MainScreen(viewModel: DashboardViewModel) {
                     uiState = uiState,
                     onSetClimateTemp = { viewModel.setClimateTarget(it) },
                     onSetVmcSpeed = { viewModel.setVmcSpeed(it) },
-                    onUpdateControl = { name, value -> viewModel.updateControl(name, value) }
+                    onUpdateControl = { name, value -> viewModel.updateControl(name, value) },
+                    onStovePowerToggle = { viewModel.setStovePower(it) },
+                    onStoveModeChange = { viewModel.setStoveMode(it) },
+                    onStoveLevelChange = { viewModel.setStoveLevel(it) }
                 )
             }
             composable(AppRoute.ANALYTICS.route) {
-                AnalyticsScreen()
+                AnalyticsScreen(uiState = uiState)
             }
             composable(AppRoute.SETTINGS.route) {
                 SettingsScreen(
