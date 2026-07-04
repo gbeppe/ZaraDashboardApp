@@ -1,6 +1,8 @@
 package com.example.zaradashboardapp
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -8,143 +10,126 @@ import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.PowerSettingsNew
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.zaradashboardapp.ui.theme.*
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StoveCard(
     stoveState: StoveState,
     onPowerToggle: (Boolean) -> Unit,
-    onModeChange: (String) -> Unit,
     onLevelChange: (Int) -> Unit
 ) {
-    var expanded by remember { mutableStateOf(false) }
-    val modes = listOf("sanitaria", "con caldaia", "riscaldamento", "manuale", "disattivato")
-
     DashboardCard(
         title = "Caminetto Palazzetti",
-        accentColor = Color(0xFFFF5722) // Colore fiamma
+        accentColor = Color(0xFFFF5722) // Orange-Red fire color
     ) {
-        Column(
-            modifier = Modifier.padding(top = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Riga Intestazione e Stato
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+            // Cerchio con Fiamma (Stato)
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .size(64.dp)
+                    .clip(CircleShape)
+                    .background(if (stoveState.acceso) Color(0xFFFF5722) else Color.DarkGray)
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Default.LocalFireDepartment,
-                        contentDescription = null,
-                        tint = if (stoveState.acceso) Color(0xFFFF5722) else GreyText,
-                        modifier = Modifier.size(24.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
+                Icon(
+                    imageVector = Icons.Default.LocalFireDepartment,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(32.dp)
+                )
+            }
+
+            Column(modifier = Modifier.weight(1f)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     Text(
                         text = if (stoveState.acceso) "ACCESO" else "SPENTO",
                         color = if (stoveState.acceso) GreenActive else GreyText,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = "LIVELLO P${stoveState.potenza}",
+                        color = OffWhite,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.ExtraBold
                     )
                 }
 
+                // Campo Modalità (non editabile)
                 Surface(
                     color = Color.White.copy(alpha = 0.05f),
-                    shape = RoundedCornerShape(4.dp)
+                    shape = RoundedCornerShape(4.dp),
+                    modifier = Modifier.padding(top = 4.dp)
                 ) {
                     Text(
-                        text = "P${stoveState.potenza}",
-                        color = OffWhite,
-                        fontWeight = FontWeight.ExtraBold,
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
+                        text = stoveState.modalita.uppercase(),
+                        color = Color.LightGray,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Medium,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
                     )
                 }
-            }
 
-            // Selezione Modalità (Dropdown)
-            ExposedDropdownMenuBox(
-                expanded = expanded,
-                onExpandedChange = { expanded = !expanded },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                OutlinedTextField(
-                    value = stoveState.modalita.replaceFirstChar { it.uppercase() },
-                    onValueChange = {},
-                    readOnly = true,
-                    label = { Text("Modalità", color = GreyText, fontSize = 12.sp) },
-                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = OffWhite,
-                        unfocusedTextColor = OffWhite,
-                        focusedBorderColor = Color(0xFFFF5722),
-                        unfocusedBorderColor = Color.White.copy(alpha = 0.1f)
-                    ),
-                    modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryEditable, true).fillMaxWidth(),
-                    textStyle = LocalTextStyle.current.copy(fontSize = 14.sp)
-                )
-                ExposedDropdownMenu(
-                    expanded = expanded,
-                    onDismissRequest = { expanded = false }
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Controlli
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    modes.forEach { mode ->
-                        DropdownMenuItem(
-                            text = { Text(mode.replaceFirstChar { it.uppercase() }) },
-                            onClick = {
-                                onModeChange(mode)
-                                expanded = false
-                            }
-                        )
+                    // ON/OFF Button
+                    Button(
+                        onClick = { onPowerToggle(!stoveState.acceso) },
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color.DarkGray,
+                            contentColor = Color.White
+                        ),
+                        shape = RoundedCornerShape(8.dp),
+                        contentPadding = PaddingValues(0.dp)
+                    ) {
+                        Icon(Icons.Default.PowerSettingsNew, contentDescription = "ON/OFF", modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("POWER", fontSize = 11.sp)
                     }
-                }
-            }
 
-            // Pulsanti di Controllo
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                // Pulsante Power
-                Button(
-                    onClick = { onPowerToggle(!stoveState.acceso) },
-                    modifier = Modifier.weight(1.2f),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = if (stoveState.acceso) Color(0xFF424242) else Color(0xFFFF5722)
-                    ),
-                    shape = RoundedCornerShape(8.dp)
-                ) {
-                    Icon(Icons.Default.PowerSettingsNew, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(if (stoveState.acceso) "SPEGNI" else "ACCENDI", fontSize = 12.sp)
-                }
+                    // Minus Button
+                    FilledIconButton(
+                        onClick = { if (stoveState.potenza > 1) onLevelChange(stoveState.potenza - 1) },
+                        modifier = Modifier.size(40.dp),
+                        colors = IconButtonDefaults.filledIconButtonColors(containerColor = Color.DarkGray),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Icon(Icons.Default.Remove, contentDescription = "Minus")
+                    }
 
-                // Pulsante Meno Potenza
-                FilledIconButton(
-                    onClick = { if (stoveState.potenza > 1) onLevelChange(stoveState.potenza - 1) },
-                    modifier = Modifier.size(48.dp),
-                    colors = IconButtonDefaults.filledIconButtonColors(containerColor = Color(0xFF424242)),
-                    shape = RoundedCornerShape(8.dp)
-                ) {
-                    Icon(Icons.Default.Remove, contentDescription = "Diminuisci")
-                }
-
-                // Pulsante Più Potenza
-                FilledIconButton(
-                    onClick = { if (stoveState.potenza < 6) onLevelChange(stoveState.potenza + 1) },
-                    modifier = Modifier.size(48.dp),
-                    colors = IconButtonDefaults.filledIconButtonColors(containerColor = Color(0xFF424242)),
-                    shape = RoundedCornerShape(8.dp)
-                ) {
-                    Icon(Icons.Default.Add, contentDescription = "Aumenta")
+                    // Plus Button
+                    FilledIconButton(
+                        onClick = { if (stoveState.potenza < 6) onLevelChange(stoveState.potenza + 1) },
+                        modifier = Modifier.size(40.dp),
+                        colors = IconButtonDefaults.filledIconButtonColors(containerColor = Color.DarkGray),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Icon(Icons.Default.Add, contentDescription = "Plus")
+                    }
                 }
             }
         }

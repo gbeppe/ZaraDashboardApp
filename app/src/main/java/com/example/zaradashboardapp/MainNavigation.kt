@@ -99,7 +99,6 @@ fun MainScreen(viewModel: DashboardViewModel) {
                     onSetVmcSpeed = { viewModel.setVmcSpeed(it) },
                     onUpdateControl = { name, value -> viewModel.updateControl(name, value) },
                     onStovePowerToggle = { viewModel.setStovePower(it) },
-                    onStoveModeChange = { viewModel.setStoveMode(it) },
                     onStoveLevelChange = { viewModel.setStoveLevel(it) }
                 )
             }
