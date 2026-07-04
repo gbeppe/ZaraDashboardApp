@@ -174,7 +174,7 @@ class DashboardViewModel(
     }
 
     /**
-     * Aggiorna un parametro di controllo, aggiorna la UI e pubblica su MQTT con retain.
+     * Aggiorna un parametro di controllo, aggiorna la UI e pubblica su MQTT con retain sui topic reali Node-RED.
      */
     fun updateControl(controlName: String, value: Any) {
         viewModelScope.launch {
@@ -191,10 +191,22 @@ class DashboardViewModel(
                 }
                 state.copy(controls = newControls)
             }
-            
-            val settings = settingsManager.getSettings()
-            mqttManager.publish("${settings.baseTopic}/controlli/$controlName", value.toString(), retained = true)
-            addLog("CONTROL", "Param Updated", "$controlName -> $value")
+
+            val mqttTopic = when (controlName) {
+                "minOnCompressore" -> "casa/clima/cmnd/min_run_time"
+                "minOffCompressore" -> "casa/clima/cmnd/min_off_time"
+                "sogliaHumidexNotte" -> "casa/clima/cmnd/target_humidex"
+                "velocitaMaxVmcNotte" -> "casa/clima/cmnd/vmc_max_notte"
+                "tolleranzaDeficit" -> "casa/clima/cmnd/deficit_tolerance_time"
+                "gestioneAcMattinoSolar" -> "casa/clima/cmnd/grace_mode_solar"
+                "sogliaEmergenzaHumidex" -> "casa/clima/cmnd/emergency_humidex_away"
+                else -> null
+            }
+
+            mqttTopic?.let {
+                mqttManager.publish(it, value.toString(), retained = true)
+                addLog("CONTROL", "Sync Sent", "Topic: $it, Val: $value")
+            }
         }
     }
 
@@ -294,6 +306,36 @@ class DashboardViewModel(
                 topic.contains("/pufferBassoTemp") -> {
                     val valFloat = message.toFloatOrNull() ?: 0f
                     _uiState.update { it.copy(heating = it.heating.copy(lowBufferTemp = valFloat)) }
+                }
+
+                // Node-RED Sync (Back-sync from cmnd/stat topics)
+                topic.contains("min_run_time") -> {
+                    val value = message.toFloatOrNull()?.toInt() ?: 45
+                    _uiState.update { it.copy(controls = it.controls.copy(minOnCompressore = value)) }
+                }
+                topic.contains("min_off_time") -> {
+                    val value = message.toFloatOrNull()?.toInt() ?: 40
+                    _uiState.update { it.copy(controls = it.controls.copy(minOffCompressore = value)) }
+                }
+                topic.contains("target_humidex") -> {
+                    val value = message.toFloatOrNull()?.toInt() ?: 29
+                    _uiState.update { it.copy(controls = it.controls.copy(sogliaHumidexNotte = value)) }
+                }
+                topic.contains("vmc_max_notte") -> {
+                    val value = message.toFloatOrNull() ?: 1f
+                    _uiState.update { it.copy(controls = it.controls.copy(velocitaMaxVmcNotte = value)) }
+                }
+                topic.contains("deficit_tolerance_time") -> {
+                    val value = message.toFloatOrNull()?.toInt() ?: 20
+                    _uiState.update { it.copy(controls = it.controls.copy(tolleranzaDeficit = value)) }
+                }
+                topic.contains("grace_mode_solar") -> {
+                    val value = message.lowercase() == "true" || message == "1"
+                    _uiState.update { it.copy(controls = it.controls.copy(gestioneAcMattinoSolar = value)) }
+                }
+                topic.contains("emergency_humidex_away") -> {
+                    val value = message.toFloatOrNull()?.toInt() ?: 30
+                    _uiState.update { it.copy(controls = it.controls.copy(sogliaEmergenzaHumidex = value)) }
                 }
                 
                 // Lights and Relays

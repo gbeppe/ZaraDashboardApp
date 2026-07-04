@@ -82,6 +82,8 @@ class MqttManager(
             if (mqttClient?.isConnected == true) {
                 onStatusChanged(if (isLocal) ConnectionStatus.CONNECTED_LOCAL else ConnectionStatus.CONNECTED_REMOTE)
                 mqttClient?.subscribe("${settings.baseTopic}/#")
+                mqttClient?.subscribe("casa/clima/stat/#")
+                mqttClient?.subscribe("casa/clima/cmnd/#")
             } else {
                 attemptConnection(uris, settings, index + 1)
             }
