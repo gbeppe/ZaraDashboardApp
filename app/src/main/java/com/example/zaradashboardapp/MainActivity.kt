@@ -29,7 +29,7 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             ZaraDashboardAppTheme {
-                DashboardScreen(viewModel)
+                MainScreen(viewModel)
             }
         }
     }
