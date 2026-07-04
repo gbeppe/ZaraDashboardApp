@@ -91,10 +91,13 @@ class MqttManager(
         }
     }
 
-    fun publish(topic: String, message: String) {
+    fun publish(topic: String, message: String, retained: Boolean = false) {
         try {
             if (mqttClient?.isConnected == true) {
-                mqttClient?.publish(topic, MqttMessage(message.toByteArray()))
+                val mqttMessage = MqttMessage(message.toByteArray()).apply {
+                    isRetained = retained
+                }
+                mqttClient?.publish(topic, mqttMessage)
             }
         } catch (e: Exception) {
             Log.e(TAG, "Publish failed: ${e.message}")

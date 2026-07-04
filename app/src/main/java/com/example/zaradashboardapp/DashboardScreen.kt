@@ -153,6 +153,12 @@ fun DashboardScreen(viewModel: DashboardViewModel) {
             // Section: Heating
             HeatingCard(heating = uiState.heating)
 
+            // Section: Controls (New)
+            ControlsCard(
+                controls = uiState.controls,
+                onUpdate = { name, value -> viewModel.updateControl(name, value) }
+            )
+
             // Section: Lights
             LightsCard(
                 lightsMap = uiState.lights,

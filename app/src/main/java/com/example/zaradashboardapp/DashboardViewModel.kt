@@ -94,6 +94,16 @@ data class HeatingState(
     val lowBufferTemp: Float = 0f
 )
 
+data class ControlsState(
+    val minOnCompressore: Int = 45,
+    val minOffCompressore: Int = 40,
+    val sogliaHumidexNotte: Int = 29,
+    val velocitaMaxVmcNotte: Float = 1f,
+    val tolleranzaDeficit: Int = 20,
+    val gestioneAcMattinoSolar: Boolean = false,
+    val sogliaEmergenzaHumidex: Int = 30
+)
+
 data class SystemState(
     val isGlobalEnabled: Boolean = true,
     val isHolidayMode: Boolean = false,
@@ -102,6 +112,7 @@ data class SystemState(
     val heating: HeatingState = HeatingState(),
     val climate: ClimateState = ClimateState(),
     val vmc: VmcState = VmcState(),
+    val controls: ControlsState = ControlsState(),
     val lights: Map<String, Boolean> = emptyMap(),
     val recentLogs: List<LogEvent> = emptyList(),
     val connectionStatus: ConnectionStatus = ConnectionStatus.DISCONNECTED
@@ -160,6 +171,31 @@ class DashboardViewModel(
         mqttManager.disconnect()
         initMqtt()
         addLog("ACTION", "Settings Saved", "MQTT Reconnecting...")
+    }
+
+    /**
+     * Aggiorna un parametro di controllo, aggiorna la UI e pubblica su MQTT con retain.
+     */
+    fun updateControl(controlName: String, value: Any) {
+        viewModelScope.launch {
+            _uiState.update { state ->
+                val newControls = when (controlName) {
+                    "minOnCompressore" -> state.controls.copy(minOnCompressore = value as Int)
+                    "minOffCompressore" -> state.controls.copy(minOffCompressore = value as Int)
+                    "sogliaHumidexNotte" -> state.controls.copy(sogliaHumidexNotte = value as Int)
+                    "velocitaMaxVmcNotte" -> state.controls.copy(velocitaMaxVmcNotte = value as Float)
+                    "tolleranzaDeficit" -> state.controls.copy(tolleranzaDeficit = value as Int)
+                    "gestioneAcMattinoSolar" -> state.controls.copy(gestioneAcMattinoSolar = value as Boolean)
+                    "sogliaEmergenzaHumidex" -> state.controls.copy(sogliaEmergenzaHumidex = value as Int)
+                    else -> state.controls
+                }
+                state.copy(controls = newControls)
+            }
+            
+            val settings = settingsManager.getSettings()
+            mqttManager.publish("${settings.baseTopic}/controlli/$controlName", value.toString(), retained = true)
+            addLog("CONTROL", "Param Updated", "$controlName -> $value")
+        }
     }
 
     /**
