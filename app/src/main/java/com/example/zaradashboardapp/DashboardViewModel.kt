@@ -99,9 +99,15 @@ data class EnvironmentalMetrics(
     val humidexBedroom: Float = 0f,
     val tempOutdoor: Float = 0f,
     val humOutdoor: Float = 0f,
-    val humidexOutdoor: Float = 0f,
-    val allTemperatures: Map<String, Double> = emptyMap()
-)
+    val humidexOutdoor: Float = 0f
+) {
+    val allTemperatures: Map<String, Double>
+        get() = mapOf(
+            "Soggiorno" to tempLiving.toDouble(),
+            "Camera da Letto" to tempBedroom.toDouble(),
+            "Esterno" to tempOutdoor.toDouble()
+        ).filterValues { it != 0.0 }
+}
 
 data class ClimateState(
     val isAcOn: Boolean = false,
@@ -350,21 +356,6 @@ class DashboardViewModel(
                 topic.contains("/env/humidexBedroom") -> {
                     val valFloat = message.toFloatOrNull() ?: 0f
                     _uiState.update { it.copy(env = it.env.copy(humidexBedroom = valFloat)) }
-                }
-
-                // Dynamic Temperature Parsing
-                topic.contains("/clima/") && topic.endsWith("/temperatura") -> {
-                    val parts = topic.split("/")
-                    val roomName = parts.getOrNull(parts.size - 2) ?: "sconosciuta"
-                    val value = message.toDoubleOrNull() ?: 0.0
-
-                    _uiState.update { currentState ->
-                        currentState.copy(
-                            env = currentState.env.copy(
-                                allTemperatures = currentState.env.allTemperatures + (roomName to value)
-                            )
-                        )
-                    }
                 }
 
                 // Heating / Puffer Data
