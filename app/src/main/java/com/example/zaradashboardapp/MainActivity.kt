@@ -55,8 +55,11 @@ class MainActivity : ComponentActivity() {
                     // Inizializza il ViewModel legato al ciclo di vita dell'Activity
                     val aiViewModel: AiAssistantViewModel = viewModel()
 
-                    // Lancia la schermata passandole il ViewModel
-                    GenerativeUiScreen(viewModel = aiViewModel)
+                    // Lancia la schermata passandole i ViewModel
+                    GenerativeUiScreen(
+                        aiViewModel = aiViewModel,
+                        dashboardViewModel = viewModel
+                    )
                     // ---------------------------------------------------------
                 }
             }

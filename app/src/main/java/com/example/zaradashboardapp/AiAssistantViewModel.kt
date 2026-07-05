@@ -1,11 +1,8 @@
 package com.example.zaradashboardapp
 
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.ai.client.generativeai.GenerativeModel
-import com.google.ai.client.generativeai.type.FunctionResponsePart
-import com.google.ai.client.generativeai.type.GenerateContentResponse
 import com.google.ai.client.generativeai.type.Schema
 import com.google.ai.client.generativeai.type.Tool
 import com.google.ai.client.generativeai.type.content
@@ -14,7 +11,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import org.json.JSONObject
 
 class AiAssistantViewModel : ViewModel() {
 
@@ -45,51 +41,61 @@ class AiAssistantViewModel : ViewModel() {
         }
     )
 
-    private val chat = generativeModel.startChat()
-
-    fun sendCommand(userText: String) {
+    fun sendCommand(
+        userText: String,
+        tempLiving: Double,
+        tempBedroom: Double,
+        tempOutdoor: Double
+    ) {
         viewModelScope.launch {
             try {
-                var response = chat.sendMessage(userText)
-                
-                // Gestione Function Call
-                val functionCall = response.functionCalls.firstOrNull()
-                if (functionCall != null) {
-                    val result = when (functionCall.name) {
+                // 1. Chiediamo all'AI di analizzare il testo in modo stateless
+                val response = generativeModel.generateContent(userText)
+
+                // 2. Intercettiamo l'intenzione (la funzione scelta)
+                response.functionCalls.firstOrNull()?.let { call ->
+                    when (call.name) {
                         "get_temperature_data" -> {
-                            Log.d("AiAssistant", "Eseguo get_temperature_data")
-                            JSONObject().apply {
-                                put("status", "ok")
-                                put("temperature", 22.5)
-                                put("humidity", 45)
-                            }
+                            // L'AI ha capito che vogliamo le temperature. 
+                            // Costruiamo la UI istantaneamente in locale usando i dati reali
+                            val jsonResponse = """
+                                {
+                                  "ui_type": "temperature_card",
+                                  "living": $tempLiving,
+                                  "bedroom": $tempBedroom,
+                                  "outdoor": $tempOutdoor
+                                }
+                            """.trimIndent()
+                            _uiJsonState.value = jsonResponse
                         }
                         "set_vmc_speed" -> {
-                            val speed = functionCall.args["speed"]?.toIntOrNull() ?: 0
-                            Log.d("AiAssistant", "Eseguo set_vmc_speed con speed: $speed")
-                            JSONObject().apply {
-                                put("status", "ok")
-                                put("new_speed", speed)
-                            }
+                            // L'AI ha capito il comando e ha estratto il parametro
+                            // Estraiamo l'argomento (l'SDK restituisce una Map)
+                            val speedParam = call.args["speed"] ?: "0"
+                            val speed = speedParam.toString().toFloatOrNull()?.toInt() ?: 0
+                            
+                            // (Qui invieremmo il comando MQTT reale: mqttManager.publish(...))
+                            
+                            // Costruiamo la UI di conferma
+                            val jsonResponse = """
+                                {
+                                  "ui_type": "vmc_card",
+                                  "speed": $speed,
+                                  "status": "Velocità impostata a $speed"
+                                }
+                            """.trimIndent()
+                            _uiJsonState.value = jsonResponse
                         }
-                        else -> JSONObject().put("error", "unknown function")
+                        else -> {
+                            _uiJsonState.value = """{"error": "Funzione sconosciuta chiamata dall'AI."}"""
+                        }
                     }
-
-                    // Invia la risposta della funzione all'LLM
-                    response = chat.sendMessage(
-                        content("function") {
-                            part(FunctionResponsePart(functionCall.name, result))
-                        }
-                    )
+                } ?: run {
+                    // Se l'AI non chiama nessuna funzione (es. chiacchiera normale)
+                    _uiJsonState.value = """{"error": "L'AI non ha identificato un comando domotico."}"""
                 }
-
-                // Aggiorna lo stato con il testo finale (JSON)
-                _uiJsonState.value = response.text ?: ""
-                Log.d("AiAssistant", "Risposta finale: ${response.text}")
-
             } catch (e: Exception) {
-                Log.e("AiAssistant", "Errore durante l'invio del comando", e)
-                _uiJsonState.value = "{\"error\": \"${e.message}\"}"
+                _uiJsonState.value = """{"error": "${e.localizedMessage}"}"""
             }
         }
     }

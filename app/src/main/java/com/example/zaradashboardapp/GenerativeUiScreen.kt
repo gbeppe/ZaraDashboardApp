@@ -16,8 +16,12 @@ import androidx.compose.ui.unit.sp
 import org.json.JSONObject
 
 @Composable
-fun GenerativeUiScreen(viewModel: AiAssistantViewModel) {
-    val uiJsonState by viewModel.uiJsonState.collectAsState()
+fun GenerativeUiScreen(
+    aiViewModel: AiAssistantViewModel,
+    dashboardViewModel: DashboardViewModel
+) {
+    val aiUiJsonState by aiViewModel.uiJsonState.collectAsState()
+    val dashboardUiState by dashboardViewModel.uiState.collectAsState()
     var inputText by remember { mutableStateOf("") }
 
     Column(
@@ -32,7 +36,7 @@ fun GenerativeUiScreen(viewModel: AiAssistantViewModel) {
                 .fillMaxWidth(),
             contentAlignment = Alignment.Center
         ) {
-            DynamicWidget(jsonString = uiJsonState)
+            DynamicWidget(jsonString = aiUiJsonState)
         }
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -57,7 +61,12 @@ fun GenerativeUiScreen(viewModel: AiAssistantViewModel) {
             IconButton(
                 onClick = {
                     if (inputText.isNotBlank()) {
-                        viewModel.sendCommand(inputText)
+                        aiViewModel.sendCommand(
+                            userText = inputText,
+                            tempLiving = dashboardUiState.env.tempLiving.toDouble(),
+                            tempBedroom = dashboardUiState.env.tempBedroom.toDouble(),
+                            tempOutdoor = dashboardUiState.env.tempOutdoor.toDouble()
+                        )
                         inputText = ""
                     }
                 },
