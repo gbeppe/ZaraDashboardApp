@@ -162,7 +162,8 @@ fun DashboardScreen(viewModel: DashboardViewModel) {
             // Section: Lights
             LightsCard(
                 lightsMap = uiState.lights,
-                onToggleLight = { name, state -> viewModel.setLightState(name, state) }
+                onToggleLight = { name, state -> viewModel.setLightState(name, state) },
+                onSetScene = { viewModel.setLightingScene(it) }
             )
 
             // Section: Automatismi
@@ -536,21 +537,79 @@ fun HeatingCard(heating: HeatingState) {
 @Composable
 fun LightsCard(
     lightsMap: Map<String, Boolean>,
-    onToggleLight: (String, Boolean) -> Unit
+    onToggleLight: (String, Boolean) -> Unit,
+    onSetScene: (String) -> Unit
 ) {
     val lightList = listOf(
-        Triple("sala", "Sala", "🛋️"),
+        Triple("sala", "Living", "🛋️"),
         Triple("libreria", "Libreria", "📚"),
         Triple("televisione", "Televisore", "📺"),
+        Triple("tavolinoLettura", "Lettura", "📖"),
+        Triple("lampadaHifi", "Lampada HiFi", "🎵"),
+        Triple("lavanderia", "Lavanderia", "🧺"),
         Triple("portico", "Portico", "🏡"),
-        Triple("cucina", "Cucina", "🍳"),
-        Triple("esterno", "Esterno", "🌳"),
-        Triple("luciPiscina", "Luci Piscina", "🏊"),
+        Triple("ingressoServizio", "Ingresso 2", "🚪"),
+        Triple("luciPiscina", "Piscina", "🏊"),
+        Triple("luciPedanaPiscina  ", "Pedana Piscina", "🪜"),
+        Triple("skimmerPiscina", "Skimmer Piscina", "🌊"),
         Triple("pompaPiscina", "Pompa Filtro", "🌀")
     )
 
+    val scenes = listOf(
+        Triple("TV_MODE", "Televisione", "🎬"),
+        Triple("SLEEP_MODE", "Notte", "🌙"),
+        Triple("ALL_ON", "Tutte ON", "💡"),
+        Triple("ALL_OFF", "Tutte OFF", "🌑")
+    )
+
     DashboardCard(title = "Illuminazione & Relè", accentColor = Amber) {
-        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            // Sezione Scene
+            Text(
+                text = "SCENE RAPIDE",
+                color = GreyText,
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(bottom = 4.dp)
+            )
+            
+            scenes.chunked(2).forEach { pair ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    pair.forEach { (payload, label, emoji) ->
+                        Button(
+                            onClick = { onSetScene(payload) },
+                            modifier = Modifier.weight(1f),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color.White.copy(alpha = 0.05f),
+                                contentColor = OffWhite
+                            ),
+                            shape = RoundedCornerShape(8.dp),
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 12.dp)
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(emoji, fontSize = 16.sp)
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(label, fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                            }
+                        }
+                    }
+                }
+            }
+
+            HorizontalDivider(color = Color.White.copy(alpha = 0.1f), thickness = 1.dp)
+
+            // Sezione Luci
+            Text(
+                text = "SINGOLI PUNTI LUCE",
+                color = GreyText,
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(bottom = 4.dp)
+            )
+
             lightList.chunked(2).forEach { pair ->
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -1121,7 +1180,7 @@ fun DashboardPreview() {
         ) {
             EnergyCard(energy = EnergyMetrics(productionFvW = 4500, consumptionHomeW = 1200, powerwallSoc = 85, surplusW = 3300))
             ClimateCard(climate = ClimateState(targetTemp = 22, isAcOn = true, reason = "Free Cooling"), onSetTemp = {})
-            LightsCard(lightsMap = mapOf("sala" to true, "cucina" to false), onToggleLight = { _, _ -> })
+            LightsCard(lightsMap = mapOf("sala" to true, "cucina" to false), onToggleLight = { _, _ -> }, onSetScene = {})
             EnvironmentCard(env = EnvironmentalMetrics(tempLiving = 21.5f, humLiving = 45f, tempBedroom = 19.8f, humBedroom = 50f, tempOutdoor = 12.0f, humOutdoor = 65f))
             HeatingCard(heating = HeatingState(acsBufferTemp = 48.5f, highBufferTemp = 55.0f, lowBufferTemp = 32.0f))
         }
