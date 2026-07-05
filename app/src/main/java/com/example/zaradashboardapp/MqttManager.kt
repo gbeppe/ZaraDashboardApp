@@ -82,10 +82,6 @@ class MqttManager(
             if (mqttClient?.isConnected == true) {
                 onStatusChanged(if (isLocal) ConnectionStatus.CONNECTED_LOCAL else ConnectionStatus.CONNECTED_REMOTE)
                 mqttClient?.subscribe("${settings.baseTopic}/#")
-                mqttClient?.subscribe("${settings.baseTopic}/casa/clima/stat/#")
-                mqttClient?.subscribe("${settings.baseTopic}/casa/clima/cmnd/#")
-                mqttClient?.subscribe("${settings.baseTopic}/casa/clima/stato_completo/metriche_elettriche.powerwall_soc_percent")
-                mqttClient?.subscribe("casa/stufa/stat/#")
             } else {
                 attemptConnection(uris, settings, index + 1)
             }
