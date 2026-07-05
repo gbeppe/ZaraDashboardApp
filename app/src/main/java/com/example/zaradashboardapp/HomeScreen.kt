@@ -13,7 +13,8 @@ import com.example.zaradashboardapp.ui.theme.DarkBackground
 @Composable
 fun HomeScreen(
     uiState: SystemState,
-    onToggleLight: (String, Boolean) -> Unit
+    onToggleLight: (String, Boolean) -> Unit,
+    onSetLightingScene: (String) -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -36,7 +37,8 @@ fun HomeScreen(
         // Section: Lights
         LightsCard(
             lightsMap = uiState.lights,
-            onToggleLight = onToggleLight
+            onToggleLight = onToggleLight,
+            onSetScene = onSetLightingScene
         )
 
         // Section: Logs

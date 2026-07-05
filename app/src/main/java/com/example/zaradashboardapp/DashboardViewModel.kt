@@ -502,6 +502,17 @@ class DashboardViewModel(
     }
 
     /**
+     * Imposta una scena di illuminazione.
+     */
+    fun setLightingScene(scenePayload: String) {
+        viewModelScope.launch {
+            val settings = settingsManager.getSettings()
+            mqttManager.publish("${settings.baseTopic}/scene/set", scenePayload)
+            addLog("ACTION", "Lighting Scene", "Set to: $scenePayload")
+        }
+    }
+
+    /**
      * Gestione comandi Stufa/Caminetto Palazzetti
      */
     fun setStovePower(isOn: Boolean) {

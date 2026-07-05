@@ -89,7 +89,8 @@ fun MainScreen(viewModel: DashboardViewModel) {
             composable(AppRoute.HOME.route) {
                 HomeScreen(
                     uiState = uiState,
-                    onToggleLight = { name, state -> viewModel.setLightState(name, state) }
+                    onToggleLight = { name, state -> viewModel.setLightState(name, state) },
+                    onSetLightingScene = { viewModel.setLightingScene(it) }
                 )
             }
             composable(AppRoute.CLIMATE.route) {

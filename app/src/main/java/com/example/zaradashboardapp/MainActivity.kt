@@ -4,6 +4,9 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -11,6 +14,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import com.example.zaradashboardapp.ui.theme.ZaraDashboardAppTheme
 import androidx.lifecycle.ViewModelProvider
 import com.example.database.DatabaseProvider
+import androidx.lifecycle.viewmodel.compose.viewModel
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -26,10 +30,35 @@ class MainActivity : ComponentActivity() {
 
         // 3. Istanzia il ViewModel usando la Factory
         val viewModel = ViewModelProvider(this, factory)[DashboardViewModel::class.java]
-
+/*
         setContent {
             ZaraDashboardAppTheme {
                 MainScreen(viewModel)
+            }
+        }
+ */
+        setContent {
+            ZaraDashboardAppTheme { // O il nome del tema della tua app
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background
+                ) {
+                    // ---------------------------------------------------------
+                    // 1. COMMENTA LA TUA NAVIGAZIONE NORMALE:
+                    // MainNavigationGraph(...)
+                    // oppure
+                    // DashboardScreen(...)
+                    // ---------------------------------------------------------
+
+                    // ---------------------------------------------------------
+                    // 2. INSERISCI IL TEST DELLA GENERATIVE UI:
+                    // Inizializza il ViewModel legato al ciclo di vita dell'Activity
+                    val aiViewModel: AiAssistantViewModel = viewModel()
+
+                    // Lancia la schermata passandole il ViewModel
+                    GenerativeUiScreen(viewModel = aiViewModel)
+                    // ---------------------------------------------------------
+                }
             }
         }
     }
