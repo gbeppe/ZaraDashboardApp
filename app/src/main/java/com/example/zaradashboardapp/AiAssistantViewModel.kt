@@ -35,7 +35,7 @@ class AiAssistantViewModel : ViewModel() {
     )
 
     private val generativeModel = GenerativeModel(
-        modelName = "gemini-3.0-flash-preview",
+        modelName = "gemini-3-flash-preview",
         apiKey = "AQ.Ab8RN6JSqj8hVdiBS6F89dtGrt8RB6DO-gRUXQP0RXe5CK4tvQ",
         tools = listOf(Tool(listOf(getTemperatureData, setVmcSpeed))),
         systemInstruction = content {
