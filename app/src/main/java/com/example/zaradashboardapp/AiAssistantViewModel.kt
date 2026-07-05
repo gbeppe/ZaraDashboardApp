@@ -11,6 +11,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import org.json.JSONArray
+import org.json.JSONObject
 
 class AiAssistantViewModel : ViewModel() {
 
@@ -41,12 +43,7 @@ class AiAssistantViewModel : ViewModel() {
         }
     )
 
-    fun sendCommand(
-        userText: String,
-        tempLiving: Double,
-        tempBedroom: Double,
-        tempOutdoor: Double
-    ) {
+    fun sendCommand(userText: String, temperatureMap: Map<String, Double>) {
         viewModelScope.launch {
             try {
                 // 1. Chiediamo all'AI di analizzare il testo in modo stateless
@@ -56,17 +53,20 @@ class AiAssistantViewModel : ViewModel() {
                 response.functionCalls.firstOrNull()?.let { call ->
                     when (call.name) {
                         "get_temperature_data" -> {
-                            // L'AI ha capito che vogliamo le temperature. 
-                            // Costruiamo la UI istantaneamente in locale usando i dati reali
-                            val jsonResponse = """
-                                {
-                                  "ui_type": "temperature_card",
-                                  "living": $tempLiving,
-                                  "bedroom": $tempBedroom,
-                                  "outdoor": $tempOutdoor
-                                }
-                            """.trimIndent()
-                            _uiJsonState.value = jsonResponse
+                            val jsonCard = JSONObject()
+                            jsonCard.put("ui_type", "temperature_list_card")
+                            
+                            val dataArray = JSONArray()
+                            temperatureMap.forEach { (room, value) ->
+                                val item = JSONObject()
+                                // Formatta il nome con la prima lettera maiuscola
+                                item.put("name", room.replaceFirstChar { it.uppercase() })
+                                item.put("value", value)
+                                dataArray.put(item)
+                            }
+                            jsonCard.put("sensors", dataArray)
+
+                            _uiJsonState.value = jsonCard.toString()
                         }
                         "set_vmc_speed" -> {
                             // L'AI ha capito il comando e ha estratto il parametro

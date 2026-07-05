@@ -63,9 +63,7 @@ fun GenerativeUiScreen(
                     if (inputText.isNotBlank()) {
                         aiViewModel.sendCommand(
                             userText = inputText,
-                            tempLiving = dashboardUiState.env.tempLiving.toDouble(),
-                            tempBedroom = dashboardUiState.env.tempBedroom.toDouble(),
-                            tempOutdoor = dashboardUiState.env.tempOutdoor.toDouble()
+                            temperatureMap = dashboardUiState.env.allTemperatures
                         )
                         inputText = ""
                     }
@@ -108,6 +106,7 @@ fun DynamicWidget(jsonString: String) {
         when (uiType) {
             "vmc_card" -> VmcCardWidget(json)
             "temperature_card" -> TemperatureCardWidget(json)
+            "temperature_list_card" -> TemperatureListCardWidget(json)
             else -> FallbackCardWidget(jsonString)
         }
     } else {
@@ -159,6 +158,57 @@ fun TemperatureCardWidget(json: JSONObject) {
             Text("Soggiorno: ${json.optDouble("living", 0.0)}°C")
             Text("Camera: ${json.optDouble("bedroom", 0.0)}°C")
             Text("Esterno: ${json.optDouble("outdoor", 0.0)}°C")
+        }
+    }
+}
+
+@Composable
+fun TemperatureListCardWidget(json: JSONObject) {
+    Card(
+        modifier = Modifier.fillMaxWidth().padding(8.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Default.Thermostat,
+                    contentDescription = "Temperature",
+                    tint = Color(0xFFFF7043)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "Sensori Ambientali Real-Time",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+            Spacer(modifier = Modifier.height(12.dp))
+            
+            val sensorsArray = json.optJSONArray("sensors")
+            if (sensorsArray != null && sensorsArray.length() > 0) {
+                for (i in 0 until sensorsArray.length()) {
+                    val sensor = sensorsArray.getJSONObject(i)
+                    val nome = sensor.optString("name")
+                    val valore = sensor.optDouble("value")
+                    
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 6.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(text = nome)
+                        Text(
+                            text = String.format("%.1f °C", valore), 
+                            fontWeight = FontWeight.Bold, 
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+            } else {
+                Text("Nessun dato sensore disponibile via MQTT.", color = Color.Gray)
+            }
         }
     }
 }
