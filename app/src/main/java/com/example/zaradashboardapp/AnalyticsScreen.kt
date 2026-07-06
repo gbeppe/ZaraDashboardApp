@@ -4,6 +4,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
@@ -55,12 +56,12 @@ fun AnalyticsScreen(uiState: SystemState) {
 
         item {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Row(
+                LazyRow(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     val chips = listOf("Batteria", "Temperature", "Humidex", "Bilancio")
-                    chips.forEach { chip ->
+                    items(chips) { chip ->
                         FilterChip(
                             selected = selectedChart == chip,
                             onClick = { selectedChart = chip },
@@ -89,7 +90,7 @@ fun AnalyticsScreen(uiState: SystemState) {
                         title = "Temperature Ambientali (°C)",
                         dataSeries = listOf(
                             ChartSeries(uiState.tempLivingHistory, TealPrimary, "Living"),
-                            ChartSeries(uiState.tempBedroomHistory, BlueCool, "Camera"),
+                            ChartSeries(uiState.tempBedroomHistory, Purple80, "Camera"),
                             ChartSeries(uiState.tempOutdoorHistory, OrangeAccent, "Esterno")
                         )
                     )
@@ -97,7 +98,7 @@ fun AnalyticsScreen(uiState: SystemState) {
                         title = "Indice Humidex",
                         dataSeries = listOf(
                             ChartSeries(uiState.humidexHistory, Amber, "Living"),
-                            ChartSeries(uiState.humidexBedroomHistory, BlueCool, "Camera")
+                            ChartSeries(uiState.humidexBedroomHistory, Purple80, "Camera")
                         )
                     )
                     else -> TrendChartCard(
