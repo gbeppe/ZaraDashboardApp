@@ -166,7 +166,11 @@ data class SystemState(
     val connectionStatus: ConnectionStatus = ConnectionStatus.DISCONNECTED,
     val batteryHistory: List<Float> = emptyList(),
     val humidexHistory: List<Float> = emptyList(),
-    val surplusHistory: List<Float> = emptyList()
+    val surplusHistory: List<Float> = emptyList(),
+    val tempLivingHistory: List<Float> = emptyList(),
+    val tempBedroomHistory: List<Float> = emptyList(),
+    val tempOutdoorHistory: List<Float> = emptyList(),
+    val humidexBedroomHistory: List<Float> = emptyList()
 )
 
 // --- ViewModel ---
@@ -343,7 +347,12 @@ class DashboardViewModel(
                 topic.contains("/env/tempBedroom") || topic.endsWith("/env/tempBedroom") -> {
                     val valFloat = message.trim().toFloatOrNull() ?: 0f
                     Log.d("MQTT_DEBUG", "Parsed Bedroom Temp: $valFloat")
-                    _uiState.update { it.copy(env = it.env.copy(tempBedroom = valFloat)) }
+                    _uiState.update { 
+                        it.copy(
+                            env = it.env.copy(tempBedroom = valFloat),
+                            tempBedroomHistory = it.tempBedroomHistory.appendWithLimit(valFloat)
+                        )
+                    }
                 }
                 topic.contains("/env/humBedroom") || topic.endsWith("/env/humBedroom") -> {
                     val valFloat = message.trim().toFloatOrNull() ?: 0f
@@ -352,7 +361,12 @@ class DashboardViewModel(
                 topic.contains("/env/tempOutdoor") || topic.endsWith("/env/tempOutdoor") -> {
                     val valFloat = message.trim().toFloatOrNull() ?: 0f
                     Log.d("MQTT_DEBUG", "Parsed Outdoor Temp: $valFloat")
-                    _uiState.update { it.copy(env = it.env.copy(tempOutdoor = valFloat)) }
+                    _uiState.update { 
+                        it.copy(
+                            env = it.env.copy(tempOutdoor = valFloat),
+                            tempOutdoorHistory = it.tempOutdoorHistory.appendWithLimit(valFloat)
+                        )
+                    }
                 }
                 topic.contains("/env/humOutdoor") || topic.endsWith("/env/humOutdoor") -> {
                     val valFloat = message.trim().toFloatOrNull() ?: 0f
@@ -361,7 +375,12 @@ class DashboardViewModel(
                 topic.contains("/env/tempLiving") || topic.endsWith("/env/tempLiving") -> {
                     val valFloat = message.trim().toFloatOrNull() ?: 0f
                     Log.d("MQTT_DEBUG", "Parsed Living Temp: $valFloat")
-                    _uiState.update { it.copy(env = it.env.copy(tempLiving = valFloat)) }
+                    _uiState.update { 
+                        it.copy(
+                            env = it.env.copy(tempLiving = valFloat),
+                            tempLivingHistory = it.tempLivingHistory.appendWithLimit(valFloat)
+                        )
+                    }
                 }
                 topic.contains("/env/humLiving") || topic.endsWith("/env/humLiving") -> {
                     val valFloat = message.trim().toFloatOrNull() ?: 0f
@@ -378,7 +397,12 @@ class DashboardViewModel(
                 }
                 topic.contains("/env/humidexBedroom") || topic.endsWith("/env/humidexBedroom") -> {
                     val valFloat = message.trim().toFloatOrNull() ?: 0f
-                    _uiState.update { it.copy(env = it.env.copy(humidexBedroom = valFloat)) }
+                    _uiState.update { 
+                        it.copy(
+                            env = it.env.copy(humidexBedroom = valFloat),
+                            humidexBedroomHistory = it.humidexBedroomHistory.appendWithLimit(valFloat)
+                        )
+                    }
                 }
 
                 // Heating / Puffer Data
@@ -725,9 +749,27 @@ class DashboardViewModel(
                                 newHumidexHistory = newHumidexHistory.appendWithLimit(humidex)
                             }
 
+                            var newHumidexBedroomHistory = newState.humidexBedroomHistory
+                            env.humidexBedroom?.let { humidex ->
+                                newHumidexBedroomHistory = newHumidexBedroomHistory.appendWithLimit(humidex)
+                            }
+
+                            var newTempLivingHistory = newState.tempLivingHistory
+                            env.tempLiving?.let { temp ->
+                                newTempLivingHistory = newTempLivingHistory.appendWithLimit(temp)
+                            }
+
+                            var newTempBedroomHistory = newState.tempBedroomHistory
+                            env.tempBedroom?.let { temp ->
+                                newTempBedroomHistory = newTempBedroomHistory.appendWithLimit(temp)
+                            }
+
                             newState = newState.copy(
                                 env = currentEnv,
-                                humidexHistory = newHumidexHistory
+                                humidexHistory = newHumidexHistory,
+                                humidexBedroomHistory = newHumidexBedroomHistory,
+                                tempLivingHistory = newTempLivingHistory,
+                                tempBedroomHistory = newTempBedroomHistory
                             )
                         }
 

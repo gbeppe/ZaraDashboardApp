@@ -6,10 +6,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -28,10 +25,15 @@ import com.example.zaradashboardapp.ui.theme.*
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
+data class ChartSeries(
+    val data: List<Float>,
+    val color: Color,
+    val label: String
+)
+
 @Composable
 fun AnalyticsScreen(uiState: SystemState) {
     var selectedChart by remember { mutableStateOf("Batteria") }
-    // Usiamo LazyListState per avere controllo granulare sullo scroll
     val listState = rememberLazyListState()
 
     LazyColumn(
@@ -57,7 +59,7 @@ fun AnalyticsScreen(uiState: SystemState) {
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    val chips = listOf("Batteria", "Humidex", "Bilancio")
+                    val chips = listOf("Batteria", "Temperature", "Humidex", "Bilancio")
                     chips.forEach { chip ->
                         FilterChip(
                             selected = selectedChart == chip,
@@ -78,17 +80,31 @@ fun AnalyticsScreen(uiState: SystemState) {
                     }
                 }
 
-                val (dataPoints, chartColor, chartTitle) = when (selectedChart) {
-                    "Batteria" -> Triple(uiState.batteryHistory, GreenActive, "SOC Batteria (%)")
-                    "Humidex" -> Triple(uiState.humidexHistory, Amber, "Humidex Soggiorno")
-                    else -> Triple(uiState.surplusHistory, SkyBlue, "Bilancio Energetico (W)")
+                when (selectedChart) {
+                    "Batteria" -> TrendChartCard(
+                        title = "SOC Batteria (%)",
+                        dataSeries = listOf(ChartSeries(uiState.batteryHistory, GreenActive, "Batteria"))
+                    )
+                    "Temperature" -> TrendChartCard(
+                        title = "Temperature Ambientali (°C)",
+                        dataSeries = listOf(
+                            ChartSeries(uiState.tempLivingHistory, TealPrimary, "Living"),
+                            ChartSeries(uiState.tempBedroomHistory, BlueCool, "Camera"),
+                            ChartSeries(uiState.tempOutdoorHistory, OrangeAccent, "Esterno")
+                        )
+                    )
+                    "Humidex" -> TrendChartCard(
+                        title = "Indice Humidex",
+                        dataSeries = listOf(
+                            ChartSeries(uiState.humidexHistory, Amber, "Living"),
+                            ChartSeries(uiState.humidexBedroomHistory, BlueCool, "Camera")
+                        )
+                    )
+                    else -> TrendChartCard(
+                        title = "Bilancio Energetico (W)",
+                        dataSeries = listOf(ChartSeries(uiState.surplusHistory, SkyBlue, "Bilancio"))
+                    )
                 }
-
-                TrendChartCard(
-                    title = chartTitle,
-                    dataPoints = dataPoints,
-                    lineColor = chartColor
-                )
             }
         }
 
@@ -122,13 +138,15 @@ fun AnalyticsScreen(uiState: SystemState) {
 @Composable
 fun TrendChartCard(
     title: String,
-    dataPoints: List<Float>,
-    lineColor: Color
+    dataSeries: List<ChartSeries>
 ) {
     val textMeasurer = rememberTextMeasurer()
+    val mainColor = dataSeries.firstOrNull()?.color ?: TealPrimary
     
-    DashboardCard(title = title, accentColor = lineColor) {
-        if (dataPoints.isEmpty()) {
+    DashboardCard(title = title, accentColor = mainColor) {
+        val allPoints = dataSeries.flatMap { it.data }
+        
+        if (allPoints.isEmpty()) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -142,9 +160,8 @@ fun TrendChartCard(
                 )
             }
         } else {
-            // Calcolo zoom automatico (min/max con margine del 15%)
-            val rawMax = dataPoints.maxOrNull() ?: 1f
-            val rawMin = dataPoints.minOrNull() ?: 0f
+            val rawMax = allPoints.maxOrNull() ?: 1f
+            val rawMin = allPoints.minOrNull() ?: 0f
             val diff = (rawMax - rawMin).coerceAtLeast(0.5f)
             val margin = diff * 0.15f
             
@@ -153,11 +170,28 @@ fun TrendChartCard(
             val range = maxVal - minVal
 
             Column {
+                // Legend
+                if (dataSeries.size > 1) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        dataSeries.forEach { series ->
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(series.color))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(series.label, color = GreyText, fontSize = 10.sp)
+                            }
+                        }
+                    }
+                }
+
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(180.dp)
-                        .padding(top = 24.dp) // Spazio extra per il valore sopra l'ultimo pallino
+                        .padding(top = 24.dp)
                 ) {
                     // Y Axis labels
                     Column(
@@ -190,7 +224,7 @@ fun TrendChartCard(
                         val width = size.width
                         val height = size.height
 
-                        // Draw Zero Line if applicable
+                        // Draw Zero Line
                         if (minVal < 0f && maxVal > 0f) {
                             val zeroY = height - ((0f - minVal) / range * height)
                             drawLine(
@@ -202,109 +236,72 @@ fun TrendChartCard(
                             )
                         }
 
-                        val spaceX = if (dataPoints.size > 1) width / (dataPoints.size - 1) else width
-
-                        val points = dataPoints.mapIndexed { i, value ->
-                            val x = i * spaceX
-                            val y = height - ((value - minVal) / range * height)
-                            Offset(x, y)
-                        }
-
-                        // Path for the curve
-                        val path = Path().apply {
-                            if (points.isNotEmpty()) {
-                                moveTo(points.first().x, points.first().y)
-                                for (i in 1 until points.size) {
-                                    val prev = points[i - 1]
-                                    val curr = points[i]
-                                    val cp1 = Offset((prev.x + curr.x) / 2, prev.y)
-                                    val cp2 = Offset((prev.x + curr.x) / 2, curr.y)
-                                    cubicTo(cp1.x, cp1.y, cp2.x, cp2.y, curr.x, curr.y)
+                        dataSeries.forEach { series ->
+                            if (series.data.size > 1) {
+                                val spaceX = width / (series.data.size - 1)
+                                val points = series.data.mapIndexed { i, value ->
+                                    val x = i * spaceX
+                                    val y = height - ((value - minVal) / range * height)
+                                    Offset(x, y)
                                 }
-                            }
-                        }
 
-                        if (points.size > 1) {
-                            // Fill under the line
-                            val fillPath = Path().apply {
-                                addPath(path)
-                                lineTo(points.last().x, height)
-                                lineTo(points.first().x, height)
-                                close()
-                            }
+                                val path = Path().apply {
+                                    moveTo(points.first().x, points.first().y)
+                                    for (i in 1 until points.size) {
+                                        val prev = points[i - 1]
+                                        val curr = points[i]
+                                        val cp1 = Offset((prev.x + curr.x) / 2, prev.y)
+                                        val cp2 = Offset((prev.x + curr.x) / 2, curr.y)
+                                        cubicTo(cp1.x, cp1.y, cp2.x, cp2.y, curr.x, curr.y)
+                                    }
+                                }
 
-                            drawPath(
-                                path = fillPath,
-                                brush = Brush.verticalGradient(
-                                    colors = listOf(lineColor.copy(alpha = 0.2f), Color.Transparent),
-                                    startY = 0f,
-                                    endY = height
+                                // Fill
+                                val fillPath = Path().apply {
+                                    addPath(path)
+                                    lineTo(points.last().x, height)
+                                    lineTo(points.first().x, height)
+                                    close()
+                                }
+                                drawPath(
+                                    path = fillPath,
+                                    brush = Brush.verticalGradient(
+                                        colors = listOf(series.color.copy(alpha = 0.1f), Color.Transparent),
+                                        startY = 0f,
+                                        endY = height
+                                    )
                                 )
-                            )
 
-                            // Draw the line
-                            drawPath(
-                                path = path,
-                                color = lineColor,
-                                style = Stroke(
-                                    width = 3.dp.toPx(),
-                                    cap = StrokeCap.Round,
-                                    join = StrokeJoin.Round
+                                // Line
+                                drawPath(
+                                    path = path,
+                                    color = series.color,
+                                    style = Stroke(width = 2.5.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round)
                                 )
-                            )
-                        }
 
-                        // Ultimo pallino con valore (sempre visibile)
-                        if (points.isNotEmpty()) {
-                            val lastPoint = points.last()
-                            val lastValue = dataPoints.last()
-                            
-                            // Pallino esterno (glow)
-                            drawCircle(
-                                color = lineColor.copy(alpha = 0.3f),
-                                radius = 8.dp.toPx(),
-                                center = lastPoint
-                            )
-                            // Pallino pieno
-                            drawCircle(
-                                color = lineColor,
-                                radius = 4.dp.toPx(),
-                                center = lastPoint
-                            )
-                            // Bordo pallino
-                            drawCircle(
-                                color = Color.White,
-                                radius = 2.dp.toPx(),
-                                center = lastPoint
-                            )
+                                // Last Point
+                                val lastPoint = points.last()
+                                val lastValue = series.data.last()
+                                
+                                drawCircle(color = series.color.copy(alpha = 0.3f), radius = 6.dp.toPx(), center = lastPoint)
+                                drawCircle(color = series.color, radius = 3.dp.toPx(), center = lastPoint)
+                                drawCircle(color = Color.White, radius = 1.5.dp.toPx(), center = lastPoint)
 
-                            // Testo del valore sopra l'ultimo pallino
-                            val textLayoutResult = textMeasurer.measure(
-                                text = String.format(Locale.US, "%.1f", lastValue),
-                                style = TextStyle(
-                                    color = Color.White,
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Bold
+                                // Value Text (offset it based on index to avoid overlapping if possible)
+                                val textLayoutResult = textMeasurer.measure(
+                                    text = String.format(Locale.US, "%.1f", lastValue),
+                                    style = TextStyle(color = series.color, fontSize = 10.sp, fontWeight = FontWeight.Bold)
                                 )
-                            )
-                            
-                            drawText(
-                                textLayoutResult = textLayoutResult,
-                                topLeft = Offset(
-                                    x = lastPoint.x - (textLayoutResult.size.width / 2),
-                                    y = lastPoint.y - textLayoutResult.size.height - 8.dp.toPx()
-                                )
-                            )
-                        }
-
-                        // Dots opzionali solo se pochi punti (ma escludiamo l'ultimo già disegnato)
-                        if (dataPoints.size in 2..19) {
-                            for (i in 0 until points.size - 1) {
-                                drawCircle(
-                                    color = lineColor,
-                                    radius = 2.dp.toPx(),
-                                    center = points[i],
-                                    style = Stroke(width = 1.dp.toPx())
+                                
+                                // Simple logic to avoid overlap: stagger Y
+                                val yOffset = if (dataSeries.indexOf(series) % 2 == 0) 12.dp.toPx() else 24.dp.toPx()
+                                
+                                drawText(
+                                    textLayoutResult = textLayoutResult,
+                                    topLeft = Offset(
+                                        x = lastPoint.x - (textLayoutResult.size.width / 2),
+                                        y = lastPoint.y - textLayoutResult.size.height - yOffset
+                                    )
                                 )
                             }
                         }
@@ -312,13 +309,11 @@ fun TrendChartCard(
                 }
 
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 8.dp, start = 45.dp),
+                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp, start = 45.dp),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text("Inizio", color = GreyText, fontSize = 10.sp)
-                    Text("Tempo reale (sliding)", color = GreyText, fontSize = 10.sp)
+                    Text("Tempo reale", color = GreyText, fontSize = 10.sp)
                     Text("Ora", color = GreyText, fontSize = 10.sp)
                 }
             }
@@ -342,7 +337,6 @@ fun EventTimelineItem(log: LogEvent, isLast: Boolean) {
             .fillMaxWidth()
             .height(IntrinsicSize.Min)
     ) {
-        // Timeline Column (Left)
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier.width(32.dp)
@@ -363,7 +357,6 @@ fun EventTimelineItem(log: LogEvent, isLast: Boolean) {
             }
         }
 
-        // Content Column (Right)
         Column(
             modifier = Modifier
                 .padding(start = 8.dp, bottom = 20.dp)
