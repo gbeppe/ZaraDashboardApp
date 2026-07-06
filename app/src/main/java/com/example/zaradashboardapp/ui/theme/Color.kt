@@ -2,7 +2,7 @@ package com.example.zaradashboardapp.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-val Purple80 = Color(0xFFD0BCFF)
+val Purple80 = Color(0xFFFFEB3B)
 val PurpleGrey80 = Color(0xFFCCC2DC)
 val Pink80 = Color(0xFFEFB8C8)
 
@@ -19,7 +19,7 @@ val DarkSurfaceVariant = Color(0xFF2C2C2C)
 val Emerald = Color(0xFF2ECC71)
 val SkyBlue = Color(0xFF3498DB)
 val Sunset = Color(0xFFE67E22)
-val Amber = Color(0xFFF1C40F)
+val Amber = Color(0xFF03A9F4)
 val Crimson = Color(0xFFE74C3C)
 
 // Other App Colors
