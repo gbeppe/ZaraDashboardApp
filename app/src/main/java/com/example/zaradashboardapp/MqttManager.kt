@@ -51,22 +51,32 @@ class MqttManager(
         onStatusChanged(ConnectionStatus.CONNECTING)
         
         try {
-            mqttClient?.disconnect()
+            mqttClient?.let {
+                if (it.isConnected) it.disconnect()
+                it.close()
+            }
             mqttClient = MqttClient(uri, MqttClient.generateClientId(), persistence)
             
             val options = MqttConnectOptions().apply {
                 isCleanSession = true
-                connectionTimeout = 5
-                keepAliveInterval = 60
+                connectionTimeout = 10
+                keepAliveInterval = 30
+                isAutomaticReconnect = true
                 if (settings.username.isNotEmpty()) {
                     userName = settings.username
                     password = settings.password.toCharArray()
                 }
             }
 
-            mqttClient?.setCallback(object : MqttCallback {
+            mqttClient?.setCallback(object : MqttCallbackExtended {
+                override fun connectComplete(reconnect: Boolean, serverURI: String?) {
+                    Log.d(TAG, "Connection established to $serverURI (reconnect: $reconnect)")
+                    onStatusChanged(if (isLocal) ConnectionStatus.CONNECTED_LOCAL else ConnectionStatus.CONNECTED_REMOTE)
+                    mqttClient?.subscribe("${settings.baseTopic}/#")
+                }
+
                 override fun connectionLost(cause: Throwable?) {
-                    Log.e(TAG, "Connection lost: ${cause?.message}")
+                    Log.e(TAG, "Connection lost: ${cause?.message}", cause)
                     onStatusChanged(ConnectionStatus.DISCONNECTED)
                 }
 
@@ -79,14 +89,13 @@ class MqttManager(
 
             mqttClient?.connect(options)
             
-            if (mqttClient?.isConnected == true) {
-                onStatusChanged(if (isLocal) ConnectionStatus.CONNECTED_LOCAL else ConnectionStatus.CONNECTED_REMOTE)
-                mqttClient?.subscribe("${settings.baseTopic}/#")
-            } else {
-                attemptConnection(uris, settings, index + 1)
-            }
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to connect to $uri: ${e.message}")
+            val errorMsg = if (e is MqttException) {
+                "Errore MQTT (${e.reasonCode}): ${e.message}"
+            } else {
+                "Errore: ${e.message}"
+            }
+            Log.e(TAG, "Failed to connect to $uri: $errorMsg")
             attemptConnection(uris, settings, index + 1)
         }
     }

@@ -1,26 +1,30 @@
 package com.example.zaradashboardapp
 
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AutoAwesome
-import androidx.compose.material.icons.filled.BarChart
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Thermostat
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import com.example.zaradashboardapp.ui.theme.DarkBackground
-import com.example.zaradashboardapp.ui.theme.TealPrimary
+import com.example.zaradashboardapp.ui.theme.*
+import java.util.*
 
 enum class AppRoute(val route: String) {
     HOME("home"),
@@ -44,6 +48,7 @@ val bottomNavItems = listOf(
     BottomNavItem(AppRoute.SETTINGS, Icons.Default.Settings, "Setup")
 )
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen(
     dashboardViewModel: DashboardViewModel,
@@ -51,8 +56,91 @@ fun MainScreen(
 ) {
     val navController = rememberNavController()
     val uiState by dashboardViewModel.uiState.collectAsState()
+    var showSettings by remember { mutableStateOf(false) }
+
+    // Ticking Clock Simulation
+    var currentTimeString by remember { mutableStateOf("") }
+    LaunchedEffect(Unit) {
+        val clockFormat = java.text.SimpleDateFormat("EEEE dd MMMM, HH:mm:ss", Locale.ITALIAN)
+        while (true) {
+            currentTimeString = clockFormat.format(Date())
+            kotlinx.coroutines.delay(1000)
+        }
+    }
+
+    if (showSettings) {
+        SettingsDialog(
+            currentSettings = dashboardViewModel.getSettings(),
+            onDismiss = { showSettings = false },
+            onSave = { newSettings ->
+                dashboardViewModel.saveSettings(newSettings)
+                showSettings = false
+            }
+        )
+    }
 
     Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {
+                    Column {
+                        Text(
+                            "ZARA DASHBOARD",
+                            color = TealPrimary,
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontWeight = FontWeight.ExtraBold,
+                                letterSpacing = 1.sp
+                            )
+                        )
+                        Text(
+                            text = currentTimeString.uppercase(),
+                            color = Color.White.copy(alpha = 0.5f),
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Normal,
+                            fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
+                        )
+                    }
+                },
+                actions = {
+                    ConnectionIndicator(status = uiState.connectionStatus)
+                    
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    // System AI Master Status Switch - Compact Version
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(if (uiState.isGlobalEnabled) Color(0x1F00C853) else Color(0x1FFF1744))
+                            .clickable { dashboardViewModel.toggleSystem() }
+                            .padding(horizontal = 8.dp, vertical = 6.dp)
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(
+                                modifier = Modifier
+                                    .size(6.dp)
+                                    .clip(CircleShape)
+                                    .background(if (uiState.isGlobalEnabled) GreenActive else Color.Red)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = if (uiState.isGlobalEnabled) "AI" else "OFF",
+                                color = if (uiState.isGlobalEnabled) GreenActive else Color.Red,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+
+                    IconButton(onClick = { showSettings = true }) {
+                        Icon(Icons.Default.Settings, contentDescription = "Settings", tint = Color.White)
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = DarkBackground,
+                    titleContentColor = Color.White
+                )
+            )
+        },
         bottomBar = {
             NavigationBar(
                 containerColor = DarkBackground,
@@ -78,8 +166,8 @@ fun MainScreen(
                         colors = NavigationBarItemDefaults.colors(
                             selectedIconColor = TealPrimary,
                             selectedTextColor = TealPrimary,
-                            unselectedIconColor = androidx.compose.ui.graphics.Color.Gray,
-                            unselectedTextColor = androidx.compose.ui.graphics.Color.Gray,
+                            unselectedIconColor = Color.Gray,
+                            unselectedTextColor = Color.Gray,
                             indicatorColor = TealPrimary.copy(alpha = 0.1f)
                         )
                     )
@@ -128,3 +216,4 @@ fun MainScreen(
         }
     }
 }
+

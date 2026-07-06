@@ -186,6 +186,7 @@ class DashboardViewModel(
     private val mqttManager = MqttManager(
         context = application,
         onStatusChanged = { status ->
+            Log.d("MQTT_DEBUG", "Status: $status")
             _uiState.update { it.copy(connectionStatus = status) }
             addLog("SYSTEM", "Connection Status Changed", "New status: $status")
         },
@@ -202,6 +203,7 @@ class DashboardViewModel(
      * Carica le impostazioni e inizializza la connessione MQTT.
      */
     fun initMqtt() {
+        Log.d("MQTT_DEBUG", "initMqtt called")
         val settings = settingsManager.getSettings()
         mqttManager.connect(settings)
     }
@@ -262,6 +264,7 @@ class DashboardViewModel(
      * Gestisce i messaggi MQTT in arrivo con mappatura dei topic flat e JSON.
      */
     fun handleMqttMessage(topic: String, message: String) {
+        Log.d("MQTT_DEBUG", "Received: $topic -> $message")
         val baseTopic = settingsManager.getSettings().baseTopic
         viewModelScope.launch {
             when {
@@ -320,32 +323,35 @@ class DashboardViewModel(
                 }
                 
                 // Environmental Data
-                topic.contains("/env/tempBedroom") -> {
-                    val valFloat = message.toFloatOrNull() ?: 0f
+                topic.contains("/env/tempBedroom") || topic.endsWith("/env/tempBedroom") -> {
+                    val valFloat = message.trim().toFloatOrNull() ?: 0f
+                    Log.d("MQTT_DEBUG", "Parsed Bedroom Temp: $valFloat")
                     _uiState.update { it.copy(env = it.env.copy(tempBedroom = valFloat)) }
                 }
-                topic.contains("/env/humBedroom") -> {
-                    val valFloat = message.toFloatOrNull() ?: 0f
+                topic.contains("/env/humBedroom") || topic.endsWith("/env/humBedroom") -> {
+                    val valFloat = message.trim().toFloatOrNull() ?: 0f
                     _uiState.update { it.copy(env = it.env.copy(humBedroom = valFloat)) }
                 }
-                topic.contains("/env/tempOutdoor") -> {
-                    val valFloat = message.toFloatOrNull() ?: 0f
+                topic.contains("/env/tempOutdoor") || topic.endsWith("/env/tempOutdoor") -> {
+                    val valFloat = message.trim().toFloatOrNull() ?: 0f
+                    Log.d("MQTT_DEBUG", "Parsed Outdoor Temp: $valFloat")
                     _uiState.update { it.copy(env = it.env.copy(tempOutdoor = valFloat)) }
                 }
-                topic.contains("/env/humOutdoor") -> {
-                    val valFloat = message.toFloatOrNull() ?: 0f
+                topic.contains("/env/humOutdoor") || topic.endsWith("/env/humOutdoor") -> {
+                    val valFloat = message.trim().toFloatOrNull() ?: 0f
                     _uiState.update { it.copy(env = it.env.copy(humOutdoor = valFloat)) }
                 }
-                topic.contains("/env/tempLiving") -> {
-                    val valFloat = message.toFloatOrNull() ?: 0f
+                topic.contains("/env/tempLiving") || topic.endsWith("/env/tempLiving") -> {
+                    val valFloat = message.trim().toFloatOrNull() ?: 0f
+                    Log.d("MQTT_DEBUG", "Parsed Living Temp: $valFloat")
                     _uiState.update { it.copy(env = it.env.copy(tempLiving = valFloat)) }
                 }
-                topic.contains("/env/humLiving") -> {
-                    val valFloat = message.toFloatOrNull() ?: 0f
+                topic.contains("/env/humLiving") || topic.endsWith("/env/humLiving") -> {
+                    val valFloat = message.trim().toFloatOrNull() ?: 0f
                     _uiState.update { it.copy(env = it.env.copy(humLiving = valFloat)) }
                 }
-                topic.contains("/env/humidexLiving") -> {
-                    val valFloat = message.toFloatOrNull() ?: 0f
+                topic.contains("/env/humidexLiving") || topic.endsWith("/env/humidexLiving") -> {
+                    val valFloat = message.trim().toFloatOrNull() ?: 0f
                     _uiState.update { 
                         it.copy(
                             env = it.env.copy(humidexLiving = valFloat),
@@ -353,22 +359,22 @@ class DashboardViewModel(
                         )
                     }
                 }
-                topic.contains("/env/humidexBedroom") -> {
-                    val valFloat = message.toFloatOrNull() ?: 0f
+                topic.contains("/env/humidexBedroom") || topic.endsWith("/env/humidexBedroom") -> {
+                    val valFloat = message.trim().toFloatOrNull() ?: 0f
                     _uiState.update { it.copy(env = it.env.copy(humidexBedroom = valFloat)) }
                 }
 
                 // Heating / Puffer Data
-                topic.contains("/acsPufferTemp") -> {
-                    val valFloat = message.toFloatOrNull() ?: 0f
+                topic.contains("/acsPufferTemp") || topic.endsWith("/acsPufferTemp") -> {
+                    val valFloat = message.trim().toFloatOrNull() ?: 0f
                     _uiState.update { it.copy(heating = it.heating.copy(acsBufferTemp = valFloat)) }
                 }
-                topic.contains("/pufferAltoTemp") -> {
-                    val valFloat = message.toFloatOrNull() ?: 0f
+                topic.contains("/pufferAltoTemp") || topic.endsWith("/pufferAltoTemp") -> {
+                    val valFloat = message.trim().toFloatOrNull() ?: 0f
                     _uiState.update { it.copy(heating = it.heating.copy(highBufferTemp = valFloat)) }
                 }
-                topic.contains("/pufferBassoTemp") -> {
-                    val valFloat = message.toFloatOrNull() ?: 0f
+                topic.contains("/pufferBassoTemp") || topic.endsWith("/pufferBassoTemp") -> {
+                    val valFloat = message.trim().toFloatOrNull() ?: 0f
                     _uiState.update { it.copy(heating = it.heating.copy(lowBufferTemp = valFloat)) }
                 }
 
