@@ -18,11 +18,15 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.zaradashboardapp.ui.theme.*
 import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 @Composable
 fun AnalyticsScreen(uiState: SystemState) {
@@ -121,6 +125,8 @@ fun TrendChartCard(
     dataPoints: List<Float>,
     lineColor: Color
 ) {
+    val textMeasurer = rememberTextMeasurer()
+    
     DashboardCard(title = title, accentColor = lineColor) {
         if (dataPoints.isEmpty()) {
             Box(
@@ -136,16 +142,22 @@ fun TrendChartCard(
                 )
             }
         } else {
-            val maxVal = (dataPoints.maxOrNull() ?: 1f).coerceAtLeast(1f)
-            val minVal = dataPoints.minOrNull() ?: 0f
-            val range = (maxVal - minVal).coerceAtLeast(1f)
+            // Calcolo zoom automatico (min/max con margine del 15%)
+            val rawMax = dataPoints.maxOrNull() ?: 1f
+            val rawMin = dataPoints.minOrNull() ?: 0f
+            val diff = (rawMax - rawMin).coerceAtLeast(0.5f)
+            val margin = diff * 0.15f
+            
+            val maxVal = rawMax + margin
+            val minVal = rawMin - margin
+            val range = maxVal - minVal
 
             Column {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(180.dp)
-                        .padding(top = 16.dp)
+                        .padding(top = 24.dp) // Spazio extra per il valore sopra l'ultimo pallino
                 ) {
                     // Y Axis labels
                     Column(
@@ -156,15 +168,15 @@ fun TrendChartCard(
                         horizontalAlignment = Alignment.End
                     ) {
                         Text(
-                            text = maxVal.toInt().toString(),
+                            text = String.format(Locale.US, "%.1f", maxVal),
                             color = GreyText,
-                            fontSize = 10.sp,
+                            fontSize = 9.sp,
                             modifier = Modifier.padding(end = 8.dp)
                         )
                         Text(
-                            text = minVal.toInt().toString(),
+                            text = String.format(Locale.US, "%.1f", minVal),
                             color = GreyText,
-                            fontSize = 10.sp,
+                            fontSize = 9.sp,
                             modifier = Modifier.padding(end = 8.dp)
                         )
                     }
@@ -182,7 +194,7 @@ fun TrendChartCard(
                         if (minVal < 0f && maxVal > 0f) {
                             val zeroY = height - ((0f - minVal) / range * height)
                             drawLine(
-                                color = GreyText.copy(alpha = 0.5f),
+                                color = GreyText.copy(alpha = 0.3f),
                                 start = Offset(0f, zeroY),
                                 end = Offset(width, zeroY),
                                 strokeWidth = 1.dp.toPx(),
@@ -224,7 +236,7 @@ fun TrendChartCard(
                             drawPath(
                                 path = fillPath,
                                 brush = Brush.verticalGradient(
-                                    colors = listOf(lineColor.copy(alpha = 0.3f), Color.Transparent),
+                                    colors = listOf(lineColor.copy(alpha = 0.2f), Color.Transparent),
                                     startY = 0f,
                                     endY = height
                                 )
@@ -240,22 +252,58 @@ fun TrendChartCard(
                                     join = StrokeJoin.Round
                                 )
                             )
-                        } else if (points.size == 1) {
-                            drawCircle(color = lineColor, radius = 4.dp.toPx(), center = points.first())
                         }
 
-                        // Optional: Draw dots if few points
-                        if (dataPoints.size < 20) {
-                            points.forEach { point ->
-                                drawCircle(
-                                    color = DarkBackground,
-                                    radius = 3.dp.toPx(),
-                                    center = point
+                        // Ultimo pallino con valore (sempre visibile)
+                        if (points.isNotEmpty()) {
+                            val lastPoint = points.last()
+                            val lastValue = dataPoints.last()
+                            
+                            // Pallino esterno (glow)
+                            drawCircle(
+                                color = lineColor.copy(alpha = 0.3f),
+                                radius = 8.dp.toPx(),
+                                center = lastPoint
+                            )
+                            // Pallino pieno
+                            drawCircle(
+                                color = lineColor,
+                                radius = 4.dp.toPx(),
+                                center = lastPoint
+                            )
+                            // Bordo pallino
+                            drawCircle(
+                                color = Color.White,
+                                radius = 2.dp.toPx(),
+                                center = lastPoint
+                            )
+
+                            // Testo del valore sopra l'ultimo pallino
+                            val textLayoutResult = textMeasurer.measure(
+                                text = String.format(Locale.US, "%.1f", lastValue),
+                                style = TextStyle(
+                                    color = Color.White,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold
                                 )
+                            )
+                            
+                            drawText(
+                                textLayoutResult = textLayoutResult,
+                                topLeft = Offset(
+                                    x = lastPoint.x - (textLayoutResult.size.width / 2),
+                                    y = lastPoint.y - textLayoutResult.size.height - 8.dp.toPx()
+                                )
+                            )
+                        }
+
+                        // Dots opzionali solo se pochi punti (ma escludiamo l'ultimo già disegnato)
+                        if (dataPoints.size in 2..19) {
+                            for (i in 0 until points.size - 1) {
                                 drawCircle(
                                     color = lineColor,
                                     radius = 2.dp.toPx(),
-                                    center = point,
+                                    center = points[i],
                                     style = Stroke(width = 1.dp.toPx())
                                 )
                             }
