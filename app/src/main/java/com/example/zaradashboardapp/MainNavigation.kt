@@ -2,6 +2,7 @@ package com.example.zaradashboardapp
 
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Settings
@@ -25,6 +26,7 @@ enum class AppRoute(val route: String) {
     HOME("home"),
     CLIMATE("climate"),
     ANALYTICS("analytics"),
+    AI_ASSISTANT("ai_assistant"),
     SETTINGS("settings")
 }
 
@@ -38,13 +40,17 @@ val bottomNavItems = listOf(
     BottomNavItem(AppRoute.HOME, Icons.Default.Home, "Home"),
     BottomNavItem(AppRoute.CLIMATE, Icons.Default.Thermostat, "Clima"),
     BottomNavItem(AppRoute.ANALYTICS, Icons.Default.BarChart, "Dati"),
+    BottomNavItem(AppRoute.AI_ASSISTANT, Icons.Default.AutoAwesome, "Zara AI"),
     BottomNavItem(AppRoute.SETTINGS, Icons.Default.Settings, "Setup")
 )
 
 @Composable
-fun MainScreen(viewModel: DashboardViewModel) {
+fun MainScreen(
+    dashboardViewModel: DashboardViewModel,
+    aiViewModel: AiAssistantViewModel
+) {
     val navController = rememberNavController()
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by dashboardViewModel.uiState.collectAsState()
 
     Scaffold(
         bottomBar = {
@@ -89,28 +95,34 @@ fun MainScreen(viewModel: DashboardViewModel) {
             composable(AppRoute.HOME.route) {
                 HomeScreen(
                     uiState = uiState,
-                    onToggleLight = { name, state -> viewModel.setLightState(name, state) },
-                    onSetLightingScene = { viewModel.setLightingScene(it) }
+                    onToggleLight = { name, state -> dashboardViewModel.setLightState(name, state) },
+                    onSetLightingScene = { dashboardViewModel.setLightingScene(it) }
                 )
             }
             composable(AppRoute.CLIMATE.route) {
                 ClimateScreen(
                     uiState = uiState,
-                    onSetClimateTemp = { viewModel.setClimateTarget(it) },
-                    onSetVmcSpeed = { viewModel.setVmcSpeed(it) },
-                    onUpdateControl = { name, value -> viewModel.updateControl(name, value) },
-                    onStovePowerToggle = { viewModel.setStovePower(it) },
-                    onStoveLevelChange = { viewModel.setStoveLevel(it) }
+                    onSetClimateTemp = { dashboardViewModel.setClimateTarget(it) },
+                    onSetVmcSpeed = { dashboardViewModel.setVmcSpeed(it) },
+                    onUpdateControl = { name, value -> dashboardViewModel.updateControl(name, value) },
+                    onStovePowerToggle = { dashboardViewModel.setStovePower(it) },
+                    onStoveLevelChange = { dashboardViewModel.setStoveLevel(it) }
                 )
             }
             composable(AppRoute.ANALYTICS.route) {
                 AnalyticsScreen(uiState = uiState)
             }
+            composable(AppRoute.AI_ASSISTANT.route) {
+                GenerativeUiScreen(
+                    aiViewModel = aiViewModel,
+                    dashboardViewModel = dashboardViewModel
+                )
+            }
             composable(AppRoute.SETTINGS.route) {
                 SettingsScreen(
-                    viewModel = viewModel,
+                    viewModel = dashboardViewModel,
                     isHolidayMode = uiState.isHolidayMode,
-                    onToggleHoliday = { viewModel.toggleHolidayMode() }
+                    onToggleHoliday = { dashboardViewModel.toggleHolidayMode() }
                 )
             }
         }
