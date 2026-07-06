@@ -151,6 +151,9 @@ data class StoveState(
 data class SystemState(
     val isGlobalEnabled: Boolean = true,
     val isHolidayMode: Boolean = false,
+    val isLuciEcoEnabled: Boolean = false,
+    val isLuciPiscinaAutoEnabled: Boolean = false,
+    val isSensorePorticoEnabled: Boolean = true,
     val energy: EnergyMetrics = EnergyMetrics(),
     val env: EnvironmentalMetrics = EnvironmentalMetrics(),
     val heating: HeatingState = HeatingState(),
@@ -321,6 +324,20 @@ class DashboardViewModel(
                     val isAuto = message == "ON" || message == "true"
                     _uiState.update { it.copy(climate = it.climate.copy(isAutoModeEnabled = isAuto)) }
                 }
+
+                // New System States
+                topic.endsWith("/system/luci_eco/state") -> {
+                    val isEnabled = message == "1" || message == "true" || message == "ON"
+                    _uiState.update { it.copy(isLuciEcoEnabled = isEnabled) }
+                }
+                topic.endsWith("/system/luci_piscina_auto/state") -> {
+                    val isEnabled = message == "1" || message == "true" || message == "ON"
+                    _uiState.update { it.copy(isLuciPiscinaAutoEnabled = isEnabled) }
+                }
+                topic.endsWith("/system/sensore_portico/state") -> {
+                    val isEnabled = message == "1" || message == "true" || message == "ON"
+                    _uiState.update { it.copy(isSensorePorticoEnabled = isEnabled) }
+                }
                 
                 // Environmental Data
                 topic.contains("/env/tempBedroom") || topic.endsWith("/env/tempBedroom") -> {
@@ -485,6 +502,62 @@ class DashboardViewModel(
             
             _uiState.update { it.copy(isHolidayMode = newState) }
             addLog("ACTION", "Holiday Mode Toggled", "New state: $newState (Payload: $payload)")
+        }
+    }
+
+    /**
+     * Abilita/Disabilita l'accensione luci ECO.
+     */
+    fun toggleLuciEco() {
+        val newState = !_uiState.value.isLuciEcoEnabled
+        viewModelScope.launch {
+            val settings = settingsManager.getSettings()
+            val payload = if (newState) "1" else "0"
+            mqttManager.publish("${settings.baseTopic}/system/luci_eco/set", payload)
+            _uiState.update { it.copy(isLuciEcoEnabled = newState) }
+            addLog("ACTION", "Luci ECO Toggled", "New state: $newState")
+        }
+    }
+
+    /**
+     * Abilita/Disabilita luci piscina AUTO.
+     */
+    fun toggleLuciPiscinaAuto() {
+        val newState = !_uiState.value.isLuciPiscinaAutoEnabled
+        viewModelScope.launch {
+            val settings = settingsManager.getSettings()
+            val payload = if (newState) "1" else "0"
+            mqttManager.publish("${settings.baseTopic}/system/luci_piscina_auto/set", payload)
+            _uiState.update { it.copy(isLuciPiscinaAutoEnabled = newState) }
+            addLog("ACTION", "Piscina AUTO Toggled", "New state: $newState")
+        }
+    }
+
+    /**
+     * Abilita/Disabilita sensore portico.
+     */
+    fun toggleSensorePortico() {
+        val newState = !_uiState.value.isSensorePorticoEnabled
+        viewModelScope.launch {
+            val settings = settingsManager.getSettings()
+            val payload = if (newState) "1" else "0"
+            mqttManager.publish("${settings.baseTopic}/system/sensore_portico/set", payload)
+            _uiState.update { it.copy(isSensorePorticoEnabled = newState) }
+            addLog("ACTION", "Sensore Portico Toggled", "New state: $newState")
+        }
+    }
+
+    /**
+     * Abilita/Disabilita AC Auto.
+     */
+    fun toggleAcAuto() {
+        val newState = !_uiState.value.climate.isAutoModeEnabled
+        viewModelScope.launch {
+            val settings = settingsManager.getSettings()
+            val payload = if (newState) "ON" else "OFF"
+            mqttManager.publish("${settings.baseTopic}/ac_auto/set", payload)
+            _uiState.update { it.copy(climate = it.climate.copy(isAutoModeEnabled = newState)) }
+            addLog("ACTION", "AC Auto Toggled", "New state: $newState")
         }
     }
 

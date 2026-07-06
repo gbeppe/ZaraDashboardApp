@@ -14,8 +14,7 @@ import com.example.zaradashboardapp.ui.theme.DarkBackground
 fun HomeScreen(
     uiState: SystemState,
     onToggleLight: (String, Boolean) -> Unit,
-    onSetLightingScene: (String) -> Unit,
-    onToggleHoliday: () -> Unit
+    onSetLightingScene: (String) -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -41,15 +40,6 @@ fun HomeScreen(
             onToggleLight = onToggleLight,
             onSetScene = onSetLightingScene
         )
-
-        // Section: Automatismi
-        DashboardCard(title = "Automatismi", accentColor = com.example.zaradashboardapp.ui.theme.TealPrimary) {
-            AutomationSwitchRow(
-                label = "Modalità Vacanza (Antigelo)",
-                checked = uiState.isHolidayMode,
-                onCheckedChange = { onToggleHoliday() }
-            )
-        }
 
         // Section: Logs
         SystemLogsCard(logs = uiState.recentLogs)
