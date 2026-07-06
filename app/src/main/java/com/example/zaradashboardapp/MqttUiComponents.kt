@@ -158,6 +158,29 @@ fun SettingsField(
 }
 
 @Composable
+fun AutomationSwitchRow(
+    label: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(label, color = OffWhite, fontWeight = FontWeight.Medium, fontSize = 13.sp)
+        Switch(
+            checked = checked,
+            onCheckedChange = onCheckedChange,
+            colors = SwitchDefaults.colors(
+                checkedThumbColor = TealPrimary,
+                checkedTrackColor = TealSecondary.copy(alpha = 0.5f)
+            )
+        )
+    }
+}
+
+@Composable
 fun DashboardCard(
     title: String,
     accentColor: Color = TealPrimary,

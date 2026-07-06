@@ -30,8 +30,7 @@ enum class AppRoute(val route: String) {
     HOME("home"),
     CLIMATE("climate"),
     ANALYTICS("analytics"),
-    AI_ASSISTANT("ai_assistant"),
-    SETTINGS("settings")
+    AI_ASSISTANT("ai_assistant")
 }
 
 data class BottomNavItem(
@@ -44,8 +43,7 @@ val bottomNavItems = listOf(
     BottomNavItem(AppRoute.HOME, Icons.Default.Home, "Home"),
     BottomNavItem(AppRoute.CLIMATE, Icons.Default.Thermostat, "Clima"),
     BottomNavItem(AppRoute.ANALYTICS, Icons.Default.BarChart, "Dati"),
-    BottomNavItem(AppRoute.AI_ASSISTANT, Icons.Default.AutoAwesome, "Zara AI"),
-    BottomNavItem(AppRoute.SETTINGS, Icons.Default.Settings, "Setup")
+    BottomNavItem(AppRoute.AI_ASSISTANT, Icons.Default.AutoAwesome, "Zara AI")
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -184,7 +182,8 @@ fun MainScreen(
                 HomeScreen(
                     uiState = uiState,
                     onToggleLight = { name, state -> dashboardViewModel.setLightState(name, state) },
-                    onSetLightingScene = { dashboardViewModel.setLightingScene(it) }
+                    onSetLightingScene = { dashboardViewModel.setLightingScene(it) },
+                    onToggleHoliday = { dashboardViewModel.toggleHolidayMode() }
                 )
             }
             composable(AppRoute.CLIMATE.route) {
@@ -204,13 +203,6 @@ fun MainScreen(
                 GenerativeUiScreen(
                     aiViewModel = aiViewModel,
                     dashboardViewModel = dashboardViewModel
-                )
-            }
-            composable(AppRoute.SETTINGS.route) {
-                SettingsScreen(
-                    viewModel = dashboardViewModel,
-                    isHolidayMode = uiState.isHolidayMode,
-                    onToggleHoliday = { dashboardViewModel.toggleHolidayMode() }
                 )
             }
         }
