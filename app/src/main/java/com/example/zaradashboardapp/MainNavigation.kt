@@ -4,6 +4,7 @@ import androidx.compose.animation.*
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -123,14 +124,37 @@ fun MainScreen(
                     
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         ConnectionIndicator(status = uiState.connectionStatus)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        // Mini indicator for AI System Status
+                        Spacer(modifier = Modifier.width(12.dp))
+                        
+                        // Interactive AI System Status Toggle
                         Box(
                             modifier = Modifier
-                                .size(6.dp)
-                                .clip(CircleShape)
-                                .background(if (uiState.isGlobalEnabled) GreenActive else Color.Red)
-                        )
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(if (uiState.isGlobalEnabled) GreenActive.copy(alpha = 0.1f) else Color.Red.copy(alpha = 0.1f))
+                                .clickable { dashboardViewModel.toggleSystem() }
+                                .border(
+                                    1.dp, 
+                                    if (uiState.isGlobalEnabled) GreenActive.copy(alpha = 0.3f) else Color.Red.copy(alpha = 0.3f),
+                                    RoundedCornerShape(8.dp)
+                                )
+                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(6.dp)
+                                        .clip(CircleShape)
+                                        .background(if (uiState.isGlobalEnabled) GreenActive else Color.Red)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = if (uiState.isGlobalEnabled) "AUTO" else "MANU",
+                                    color = if (uiState.isGlobalEnabled) GreenActive else Color.Red,
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
                     }
                 }
             }
