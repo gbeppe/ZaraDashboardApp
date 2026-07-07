@@ -48,8 +48,8 @@ L'app si sottoscrive a `{baseTopic}/#` e processa i seguenti topic:
 | `.../system/luci_eco/state` | `1`/`0` o `true`/`false` | Stato luci ECO |
 | `.../system/luci_piscina_auto/state` | `1`/`0` o `true`/`false` | Stato luci piscina AUTO |
 | `.../system/sensore_portico/state` | `1`/`0` o `true`/`false` | Stato sensore portico |
-| `.../system/time_range/state` | String (es. `8-16`) | Range orario operativo sistema |
 | `.../system/ac_auto/state` | `1`/`0` o `true`/`false` | Stato modalità automatica clima |
+| `.../system/time_range/state` | String (es. `8-16`) | Range orario operativo sistema |
 
 ### VMC e Luci
 | Topic | Messaggio | Descrizione |
@@ -58,17 +58,42 @@ L'app si sottoscrive a `{baseTopic}/#` e processa i seguenti topic:
 | `.../light/{nome}/state` | `ON`/`OFF` | Stato della luce/relè `{nome}` |
 
 ### Telemetria AI (JSON)
-L'app riceve uno stato completo tramite un payload JSON.
+L'app riceve uno stato completo tramite un payload JSON complesso.
 - **Topic**: `casa/clima/stato_completo` (o `{baseTopic}/casa/clima/stato_completo`)
-- **Formato**:
+- **Esempio Formato**:
 ```json
 {
-  "data_ora": "YYYY-MM-DD HH:mm:ss",
-  "evento": "DESCRIZIONE_EVENTO",
-  "dettaglio_comandi": {
-    "motivo_logica": "Spiegazione della logica AI"
+  "timestamp": 1690000000000,
+  "data_ora_formattata": "2026-07-07 13:18:32",
+  "stagione_attiva": "ESTATE",
+  "metriche_elettriche": {
+    "produzione_fv_w": 4500.5,
+    "consumo_casa_w": 1200.0,
+    "surplus_w": 3300.5,
+    "powerwall_soc_percent": 85.0
   },
-  "stato_ac_attuale": "ON/OFF"
+  "metriche_ambientali": {
+    "temperatura_c": 24.5,
+    "temp_cameraMatrimoniale": 22.0,
+    "humidex_living": 26.5
+  },
+  "logica_controllo": {
+    "soglia_attivazione_applicata": 1500.0,
+    "tempo_mancante_anticiclo_minuti": 5,
+    "stanza_rilevamento_vmc": "LIVING",
+    "vmc_portata_stimata_m3h": 150,
+    "previsione_solare_domani_kwh": 35.5,
+    "previsione_solare_data": "2026-07-08"
+  },
+  "stato_condizionatore": {
+    "stato_attuale": "RAFFRESCAMENTO",
+    "temperatura_impostata_c": 24.0,
+    "modalita_aria": "AUTO"
+  },
+  "stato_vmc": {
+    "velocita_attuale": 2,
+    "motivo_logica": "Qualità aria ottimale"
+  }
 }
 ```
 
