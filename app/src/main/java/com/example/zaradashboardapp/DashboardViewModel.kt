@@ -324,8 +324,8 @@ class DashboardViewModel(
                 }
                 
                 // AC Auto Mode
-                topic.endsWith("/ac_auto/state") -> {
-                    val isAuto = message == "ON" || message == "true"
+                topic.endsWith("/system/ac_auto/state") -> {
+                    val isAuto = message == "1" || message == "true" || message == "ON"
                     _uiState.update { it.copy(climate = it.climate.copy(isAutoModeEnabled = isAuto)) }
                 }
 
@@ -582,8 +582,8 @@ class DashboardViewModel(
         val newState = !_uiState.value.climate.isAutoModeEnabled
         viewModelScope.launch {
             val settings = settingsManager.getSettings()
-            val payload = if (newState) "ON" else "OFF"
-            mqttManager.publish("${settings.baseTopic}/ac_auto/set", payload)
+            val payload = if (newState) "1" else "0"
+            mqttManager.publish("${settings.baseTopic}/system/ac_auto/set", payload)
             _uiState.update { it.copy(climate = it.climate.copy(isAutoModeEnabled = newState)) }
             addLog("ACTION", "AC Auto Toggled", "New state: $newState")
         }

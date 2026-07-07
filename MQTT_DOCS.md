@@ -32,7 +32,6 @@ L'app si sottoscrive a `{baseTopic}/#` e processa i seguenti topic:
 | `.../env/tempOutdoor` | Float | Temperatura Esterna (°C) |
 | `.../env/humOutdoor` | Float | Umidità Esterna (%) |
 | `.../thermostat/living/target/state` | Int | Temperatura target impostata (°C) |
-| `.../ac_auto/state` | `ON`/`OFF` o `true`/`false` | Stato modalità automatica clima |
 
 ### Riscaldamento e Puffer
 | Topic | Messaggio | Descrizione |
@@ -49,6 +48,7 @@ L'app si sottoscrive a `{baseTopic}/#` e processa i seguenti topic:
 | `.../system/luci_eco/state` | `1`/`0` o `true`/`false` | Stato luci ECO |
 | `.../system/luci_piscina_auto/state` | `1`/`0` o `true`/`false` | Stato luci piscina AUTO |
 | `.../system/sensore_portico/state` | `1`/`0` o `true`/`false` | Stato sensore portico |
+| `.../system/ac_auto/state` | `1`/`0` o `true`/`false` | Stato modalità automatica clima |
 
 ### VMC e Luci
 | Topic | Messaggio | Descrizione |
@@ -83,7 +83,7 @@ L'app riceve uno stato completo tramite un payload JSON.
 | **Luci ECO** | `{baseTopic}/system/luci_eco/set` | `1` (Attivo), `0` (Disattivo) |
 | **Luci Piscina AUTO** | `{baseTopic}/system/luci_piscina_auto/set` | `1` (Attivo), `0` (Disattivo) |
 | **Sensore Portico** | `{baseTopic}/system/sensore_portico/set` | `1` (Attivo), `0` (Disattivo) |
+| **AC Auto** | `{baseTopic}/system/ac_auto/set` | `1` (Attivo), `0` (Disattivo) |
 | **Target Termostato**| `{baseTopic}/thermostat/living/target/set` | Int (es. `24`) |
-| **AC Auto** | `{baseTopic}/ac_auto/set` | `ON`/`OFF` |
 | **Velocità VMC** | `{baseTopic}/vmc/speed/set` | Int (es. `2`) |
 | **Scena Luci** | `{baseTopic}/scene/set` | String (es. `TV_MODE`) |
