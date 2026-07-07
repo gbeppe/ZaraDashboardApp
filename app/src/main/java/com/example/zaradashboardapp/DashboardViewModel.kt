@@ -24,9 +24,12 @@ import java.util.UUID
 
 @JsonClass(generateAdapter = true)
 data class AiTelemetryPayload(
+    @Json(name = "timestamp") val timestamp: Long? = null,
     @Json(name = "data_ora_formattata") val dataOra: String? = null,
+    @Json(name = "stagione_attiva") val stagioneAttiva: String? = null,
     @Json(name = "metriche_elettriche") val metricheElettriche: MetricheElettriche? = null,
     @Json(name = "metriche_ambientali") val ambienti: AmbientiData? = null,
+    @Json(name = "logica_controllo") val logicaControllo: LogicaControllo? = null,
     @Json(name = "stato_condizionatore") val clima: ClimaData? = null,
     @Json(name = "stato_vmc") val vmc: VmcData? = null
 )
@@ -38,6 +41,18 @@ data class MetricheElettriche(
     @Json(name = "surplus_w") val surplusW: Float? = null,
     @Json(name = "powerwall_soc_percent") val powerwallSocPercent: Float? = null,
     @Json(name = "consumo_ac_w") val consumoAcW: Float? = null
+)
+
+@JsonClass(generateAdapter = true)
+data class LogicaControllo(
+    @Json(name = "soglia_attivazione_applicata") val sogliaAttivazione: Float? = null,
+    @Json(name = "tempo_mancante_anticiclo_minuti") val tempoAnticiclo: Int? = null,
+    @Json(name = "stanza_rilevamento_vmc") val stanzaVmc: String? = null,
+    @Json(name = "vmc_portata_stimata_m3h") val portataVmc: Int? = null,
+    @Json(name = "previsione_solare_domani_kwh") val previsioneSolareKwh: Float? = null,
+    @Json(name = "previsione_solare_data") val previsioneSolareData: String? = null,
+    @Json(name = "previsione_ricarica_batteria_percent") val previsioneBatteriaPercent: Float? = null,
+    @Json(name = "kwh_stimati_in_batteria") val kwhStimatiBatteria: Float? = null
 )
 
 @JsonClass(generateAdapter = true)
@@ -148,6 +163,16 @@ data class StoveState(
     val potenza: Int = 1
 )
 
+data class LogicaControlloState(
+    val tempoAnticiclo: Int = 0,
+    val stanzaVmc: String = "--",
+    val portataVmc: Int = 0,
+    val previsioneSolareKwh: Float = 0f,
+    val previsioneSolareData: String = "",
+    val previsioneBatteriaPercent: Float = 0f,
+    val kwhStimatiBatteria: Float = 0f
+)
+
 data class SystemState(
     val isGlobalEnabled: Boolean = true,
     val isHolidayMode: Boolean = false,
@@ -156,8 +181,12 @@ data class SystemState(
     val isSensorePorticoEnabled: Boolean = true,
     val timeRangeStart: Int = 8,
     val timeRangeEnd: Int = 16,
+    val lastUpdateTime: String = "",
+    val activeSeason: String = "--",
+    val waitingForData: Boolean = true,
     val energy: EnergyMetrics = EnergyMetrics(),
     val env: EnvironmentalMetrics = EnvironmentalMetrics(),
+    val logic: LogicaControlloState = LogicaControlloState(),
     val heating: HeatingState = HeatingState(),
     val climate: ClimateState = ClimateState(),
     val vmc: VmcState = VmcState(),
@@ -738,7 +767,8 @@ class DashboardViewModel(
                             newState = newState.copy(
                                 energy = currentEnergy,
                                 batteryHistory = newBatteryHistory,
-                                surplusHistory = newSurplusHistory
+                                surplusHistory = newSurplusHistory,
+                                waitingForData = false // Abbiamo ricevuto dati validi
                             )
                         }
 
@@ -798,6 +828,23 @@ class DashboardViewModel(
                                 humidexBedroomHistory = newHumidexBedroomHistory,
                                 tempLivingHistory = newTempLivingHistory,
                                 tempBedroomHistory = newTempBedroomHistory
+                            )
+                        }
+
+                        // 5. Logica Controllo (Dati aggiuntivi per Overview)
+                        data.logicaControllo?.let { logicData ->
+                            newState = newState.copy(
+                                activeSeason = data.stagioneAttiva ?: newState.activeSeason,
+                                lastUpdateTime = data.dataOra ?: newState.lastUpdateTime,
+                                logic = newState.logic.copy(
+                                    tempoAnticiclo = logicData.tempoAnticiclo ?: newState.logic.tempoAnticiclo,
+                                    stanzaVmc = logicData.stanzaVmc ?: newState.logic.stanzaVmc,
+                                    portataVmc = logicData.portataVmc ?: newState.logic.portataVmc,
+                                    previsioneSolareKwh = logicData.previsioneSolareKwh ?: newState.logic.previsioneSolareKwh,
+                                    previsioneSolareData = logicData.previsioneSolareData ?: newState.logic.previsioneSolareData,
+                                    previsioneBatteriaPercent = logicData.previsioneBatteriaPercent ?: newState.logic.previsioneBatteriaPercent,
+                                    kwhStimatiBatteria = logicData.kwhStimatiBatteria ?: newState.logic.kwhStimatiBatteria
+                                )
                             )
                         }
 

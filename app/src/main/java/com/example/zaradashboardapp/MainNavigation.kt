@@ -35,6 +35,7 @@ enum class AppMode {
 }
 
 enum class AppRoute(val route: String) {
+    OVERVIEW("overview"),
     HOME("home"),
     CLIMATE("climate"),
     ANALYTICS("analytics"),
@@ -49,6 +50,7 @@ data class BottomNavItem(
 )
 
 val dashboardNavItems = listOf(
+    BottomNavItem(AppRoute.OVERVIEW, Icons.Default.GridView, "Overview"),
     BottomNavItem(AppRoute.HOME, Icons.Default.Home, "Home"),
     BottomNavItem(AppRoute.CLIMATE, Icons.Default.Thermostat, "Clima"),
     BottomNavItem(AppRoute.ANALYTICS, Icons.Default.BarChart, "Dati"),
@@ -206,8 +208,11 @@ fun MainScreen(
             if (appMode == AppMode.DASHBOARD) {
                 NavHost(
                     navController = navController,
-                    startDestination = AppRoute.HOME.route,
+                    startDestination = AppRoute.OVERVIEW.route,
                 ) {
+                    composable(AppRoute.OVERVIEW.route) {
+                        OverviewScreen(uiState = uiState)
+                    }
                     composable(AppRoute.HOME.route) {
                         HomeScreen(
                             uiState = uiState,
