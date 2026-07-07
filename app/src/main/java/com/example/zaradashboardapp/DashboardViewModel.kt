@@ -342,7 +342,7 @@ class DashboardViewModel(
                     val isEnabled = message == "1" || message == "true" || message == "ON"
                     _uiState.update { it.copy(isSensorePorticoEnabled = isEnabled) }
                 }
-                topic.endsWith("/holiday/state") -> {
+                topic.endsWith("/system/holiday/state") -> {
                     val isEnabled = message == "1" || message == "true" || message == "ON"
                     _uiState.update { it.copy(isHolidayMode = isEnabled) }
                 }
@@ -526,7 +526,7 @@ class DashboardViewModel(
         viewModelScope.launch {
             val settings = settingsManager.getSettings()
             val payload = if (newState) "1" else "0"
-            mqttManager.publish("${settings.baseTopic}/holiday/set", payload)
+            mqttManager.publish("${settings.baseTopic}/system/holiday/set", payload)
             
             _uiState.update { it.copy(isHolidayMode = newState) }
             addLog("ACTION", "Holiday Mode Toggled", "New state: $newState (Payload: $payload)")

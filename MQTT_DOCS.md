@@ -45,7 +45,7 @@ L'app si sottoscrive a `{baseTopic}/#` e processa i seguenti topic:
 | Topic | Messaggio | Descrizione |
 | :--- | :--- | :--- |
 | `.../system/enabled/state` | `1`/`0` o `true`/`false` | Stato globale sistema AI |
-| `.../holiday/state` | `1`/`0` o `true`/`false` | Stato modalità vacanza |
+| `.../system/holiday/state` | `1`/`0` o `true`/`false` | Stato modalità vacanza |
 | `.../system/luci_eco/state` | `1`/`0` o `true`/`false` | Stato luci ECO |
 | `.../system/luci_piscina_auto/state` | `1`/`0` o `true`/`false` | Stato luci piscina AUTO |
 | `.../system/sensore_portico/state` | `1`/`0` o `true`/`false` | Stato sensore portico |
@@ -79,7 +79,7 @@ L'app riceve uno stato completo tramite un payload JSON.
 | :--- | :--- | :--- |
 | **Accensione Luce** | `{baseTopic}/light/{nome}/set` | `ON`/`OFF` |
 | **Sistema Globale (AI)** | `{baseTopic}/system/enabled/set` | `1` (Attivo), `0` (Disattivo) |
-| **Modalità Vacanza** | `{baseTopic}/holiday/set` | `1` (Attivo), `0` (Disattivo) |
+| **Modalità Vacanza** | `{baseTopic}/system/holiday/set` | `1` (Attivo), `0` (Disattivo) |
 | **Luci ECO** | `{baseTopic}/system/luci_eco/set` | `1` (Attivo), `0` (Disattivo) |
 | **Luci Piscina AUTO** | `{baseTopic}/system/luci_piscina_auto/set` | `1` (Attivo), `0` (Disattivo) |
 | **Sensore Portico** | `{baseTopic}/system/sensore_portico/set` | `1` (Attivo), `0` (Disattivo) |
