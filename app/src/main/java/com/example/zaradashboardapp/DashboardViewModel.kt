@@ -5,7 +5,6 @@ import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.core.LogDao
-import com.example.database.DatabaseProvider
 import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
 import com.squareup.moshi.Moshi
@@ -201,7 +200,9 @@ data class SystemState(
     val tempLivingHistory: List<Float> = emptyList(),
     val tempBedroomHistory: List<Float> = emptyList(),
     val tempOutdoorHistory: List<Float> = emptyList(),
-    val humidexBedroomHistory: List<Float> = emptyList()
+    val humidexBedroomHistory: List<Float> = emptyList(),
+    val acTargetTempHistory: List<Float> = emptyList(),
+    val vmcFanSpeedHistory: List<Float> = emptyList()
 )
 
 // --- ViewModel ---
@@ -352,13 +353,23 @@ class DashboardViewModel(
                 // VMC Speed
                 topic.endsWith("/vmc/speed/state") -> {
                     val speed = message.toIntOrNull() ?: 0
-                    _uiState.update { it.copy(vmc = it.vmc.copy(fanSpeed = speed)) }
+                    _uiState.update { 
+                        it.copy(
+                            vmc = it.vmc.copy(fanSpeed = speed),
+                            vmcFanSpeedHistory = it.vmcFanSpeedHistory.appendWithLimit(speed.toFloat())
+                        ) 
+                    }
                 }
                 
                 // Climate Target
                 topic.endsWith("/thermostat/living/target/state") -> {
                     val temp = message.toIntOrNull() ?: 24
-                    _uiState.update { it.copy(climate = it.climate.copy(targetTemp = temp)) }
+                    _uiState.update { 
+                        it.copy(
+                            climate = it.climate.copy(targetTemp = temp),
+                            acTargetTempHistory = it.acTargetTempHistory.appendWithLimit(if (it.climate.isAcOn) temp.toFloat() else 0f)
+                        )
+                    }
                 }
                 
                 // AC Auto Mode
@@ -528,7 +539,7 @@ class DashboardViewModel(
             addLog("MQTT", "Data Update", "Topic: $topic, Val: $message")
             
             // Aggiorna l'orario dell'ultimo messaggio ricevuto
-            val now = java.time.LocalDateTime.now()
+            val now = LocalDateTime.now()
             val formatter = java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss dd/MM/yyyy")
             _uiState.update { it.copy(lastUpdateTime = now.format(formatter)) }
         }
@@ -786,22 +797,27 @@ class DashboardViewModel(
 
                         // 2. Clima
                         data.clima?.let { clima ->
+                            val isAcOn = clima.statoAttuale != "OFF"
+                            val targetTemp = clima.targetTemp ?: newState.climate.targetTemp.toFloat()
                             newState = newState.copy(
                                 climate = newState.climate.copy(
-                                    isAcOn = clima.statoAttuale != "OFF",
+                                    isAcOn = isAcOn,
                                     mode = clima.modalitaAria ?: newState.climate.mode,
-                                    targetTemp = clima.targetTemp?.toInt() ?: newState.climate.targetTemp
-                                )
+                                    targetTemp = targetTemp.toInt()
+                                ),
+                                acTargetTempHistory = newState.acTargetTempHistory.appendWithLimit(if (isAcOn) targetTemp else 0f)
                             )
                         }
 
                         // 3. VMC
                         data.vmc?.let { vmc ->
+                            val speed = vmc.fanSpeed ?: newState.vmc.fanSpeed
                             newState = newState.copy(
                                 vmc = newState.vmc.copy(
-                                    fanSpeed = vmc.fanSpeed ?: newState.vmc.fanSpeed,
+                                    fanSpeed = speed,
                                     reason = vmc.motivoLogica ?: newState.vmc.reason
-                                )
+                                ),
+                                vmcFanSpeedHistory = newState.vmcFanSpeedHistory.appendWithLimit(speed.toFloat())
                             )
                         }
 
@@ -870,7 +886,7 @@ class DashboardViewModel(
         }
     }
 
-    private fun <T> List<T>.appendWithLimit(item: T, limit: Int = 100): List<T> {
+    private fun <T> List<T>.appendWithLimit(item: T, limit: Int = 2000): List<T> {
         val newList = this.toMutableList()
         newList.add(item)
         if (newList.size > limit) {

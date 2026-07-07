@@ -29,7 +29,7 @@ import java.util.Locale
 data class ChartSeries(
     val data: List<Float>,
     val color: Color,
-    val label: String
+    val label: String,
 )
 
 @Composable
@@ -60,7 +60,7 @@ fun AnalyticsScreen(uiState: SystemState) {
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    val chips = listOf("Batteria", "Temperature", "Humidex", "Bilancio")
+                    val chips = listOf("Batteria", "Temperature", "Humidex", "Bilancio", "Clima", "VMC")
                     items(chips) { chip ->
                         FilterChip(
                             selected = selectedChart == chip,
@@ -101,9 +101,17 @@ fun AnalyticsScreen(uiState: SystemState) {
                             ChartSeries(uiState.humidexBedroomHistory, Purple80, "Camera")
                         )
                     )
-                    else -> TrendChartCard(
+                    "Bilancio" -> TrendChartCard(
                         title = "Bilancio Energetico (W)",
                         dataSeries = listOf(ChartSeries(uiState.surplusHistory, SkyBlue, "Bilancio"))
+                    )
+                    "Clima" -> TrendChartCard(
+                        title = "AC / Heat Pump (°C)",
+                        dataSeries = listOf(ChartSeries(uiState.acTargetTempHistory, SkyBlue, "Target Temp"))
+                    )
+                    "VMC" -> TrendChartCard(
+                        title = "Velocità VMC",
+                        dataSeries = listOf(ChartSeries(uiState.vmcFanSpeedHistory, TealPrimary, "Velocità"))
                     )
                 }
             }
@@ -126,7 +134,7 @@ fun AnalyticsScreen(uiState: SystemState) {
             val index = reversedLogs.indexOf(log)
             EventTimelineItem(
                 log = log,
-                isLast = index == reversedLogs.size - 1
+                isLast = (index == reversedLogs.size - 1)
             )
         }
 
