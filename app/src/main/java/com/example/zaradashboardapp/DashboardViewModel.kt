@@ -342,6 +342,10 @@ class DashboardViewModel(
                     val isEnabled = message == "1" || message == "true" || message == "ON"
                     _uiState.update { it.copy(isSensorePorticoEnabled = isEnabled) }
                 }
+                topic.endsWith("/holiday/state") -> {
+                    val isEnabled = message == "1" || message == "true" || message == "ON"
+                    _uiState.update { it.copy(isHolidayMode = isEnabled) }
+                }
                 
                 // Environmental Data
                 topic.contains("/env/tempBedroom") || topic.endsWith("/env/tempBedroom") -> {
