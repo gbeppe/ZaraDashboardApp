@@ -174,9 +174,6 @@ fun DashboardScreen(viewModel: DashboardViewModel) {
                     onCheckedChange = { viewModel.toggleHolidayMode() }
                 )
             }
-
-            // Section: Logs
-            SystemLogsCard(logs = uiState.recentLogs)
         }
     }
 }
@@ -795,7 +792,10 @@ fun PufferSondeItem(
 }
 
 @Composable
-fun SystemLogsCard(logs: List<LogEvent>) {
+fun SystemLogsCard(
+    logs: List<LogEvent>,
+    modifier: Modifier = Modifier.height(300.dp)
+) {
     Column(modifier = Modifier.fillMaxWidth()) {
         Text(
             text = "LOG EVENTI ENGINE CLIMA AI & DOMOTICA",
@@ -806,9 +806,8 @@ fun SystemLogsCard(logs: List<LogEvent>) {
             modifier = Modifier.padding(bottom = 8.dp)
         )
         Box(
-            modifier = Modifier
+            modifier = modifier
                 .fillMaxWidth()
-                .height(300.dp)
                 .clip(RoundedCornerShape(12.dp))
                 .background(Color(0xFF070707))
                 .border(1.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(12.dp))

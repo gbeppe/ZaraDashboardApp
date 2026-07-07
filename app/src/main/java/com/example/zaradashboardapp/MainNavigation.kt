@@ -38,6 +38,7 @@ enum class AppRoute(val route: String) {
     HOME("home"),
     CLIMATE("climate"),
     ANALYTICS("analytics"),
+    LOGS("logs"),
     SETTINGS("settings")
 }
 
@@ -51,6 +52,7 @@ val dashboardNavItems = listOf(
     BottomNavItem(AppRoute.HOME, Icons.Default.Home, "Home"),
     BottomNavItem(AppRoute.CLIMATE, Icons.Default.Thermostat, "Clima"),
     BottomNavItem(AppRoute.ANALYTICS, Icons.Default.BarChart, "Dati"),
+    BottomNavItem(AppRoute.LOGS, Icons.Default.History, "Log"),
     BottomNavItem(AppRoute.SETTINGS, Icons.Default.Settings, "Setup")
 )
 
@@ -225,6 +227,9 @@ fun MainScreen(
                     }
                     composable(AppRoute.ANALYTICS.route) {
                         AnalyticsScreen(uiState = uiState)
+                    }
+                    composable(AppRoute.LOGS.route) {
+                        LogsScreen(uiState = uiState)
                     }
                     composable(AppRoute.SETTINGS.route) {
                         SettingsScreen(viewModel = dashboardViewModel)
