@@ -48,6 +48,7 @@ L'app si sottoscrive a `{baseTopic}/#` e processa i seguenti topic:
 | `.../system/luci_eco/state` | `1`/`0` o `true`/`false` | Stato luci ECO |
 | `.../system/luci_piscina_auto/state` | `1`/`0` o `true`/`false` | Stato luci piscina AUTO |
 | `.../system/sensore_portico/state` | `1`/`0` o `true`/`false` | Stato sensore portico |
+| `.../system/time_range/state` | String (es. `8-16`) | Range orario operativo sistema |
 | `.../system/ac_auto/state` | `1`/`0` o `true`/`false` | Stato modalità automatica clima |
 
 ### VMC e Luci
@@ -84,6 +85,7 @@ L'app riceve uno stato completo tramite un payload JSON.
 | **Luci Piscina AUTO** | `{baseTopic}/system/luci_piscina_auto/set` | `1` (Attivo), `0` (Disattivo) |
 | **Sensore Portico** | `{baseTopic}/system/sensore_portico/set` | `1` (Attivo), `0` (Disattivo) |
 | **AC Auto** | `{baseTopic}/system/ac_auto/set` | `1` (Attivo), `0` (Disattivo) |
+| **Range Orario** | `{baseTopic}/system/time_range/set` | String (es. `8-16`) |
 | **Target Termostato**| `{baseTopic}/thermostat/living/target/set` | Int (es. `24`) |
 | **Velocità VMC** | `{baseTopic}/vmc/speed/set` | Int (es. `2`) |
 | **Scena Luci** | `{baseTopic}/scene/set` | String (es. `TV_MODE`) |

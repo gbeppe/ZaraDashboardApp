@@ -154,6 +154,8 @@ data class SystemState(
     val isLuciEcoEnabled: Boolean = false,
     val isLuciPiscinaAutoEnabled: Boolean = false,
     val isSensorePorticoEnabled: Boolean = true,
+    val timeRangeStart: Int = 8,
+    val timeRangeEnd: Int = 16,
     val energy: EnergyMetrics = EnergyMetrics(),
     val env: EnvironmentalMetrics = EnvironmentalMetrics(),
     val heating: HeatingState = HeatingState(),
@@ -345,6 +347,15 @@ class DashboardViewModel(
                 topic.endsWith("/system/holiday/state") -> {
                     val isEnabled = message == "1" || message == "true" || message == "ON"
                     _uiState.update { it.copy(isHolidayMode = isEnabled) }
+                }
+
+                topic.endsWith("/system/time_range/state") -> {
+                    val parts = message.split("-")
+                    if (parts.size == 2) {
+                        val start = parts[0].trim().toIntOrNull() ?: 8
+                        val end = parts[1].trim().toIntOrNull() ?: 16
+                        _uiState.update { it.copy(timeRangeStart = start, timeRangeEnd = end) }
+                    }
                 }
                 
                 // Environmental Data
@@ -586,6 +597,19 @@ class DashboardViewModel(
             mqttManager.publish("${settings.baseTopic}/system/ac_auto/set", payload)
             _uiState.update { it.copy(climate = it.climate.copy(isAutoModeEnabled = newState)) }
             addLog("ACTION", "AC Auto Toggled", "New state: $newState")
+        }
+    }
+
+    /**
+     * Imposta il range di orario del sistema.
+     */
+    fun setTimeRange(start: Int, end: Int) {
+        viewModelScope.launch {
+            val settings = settingsManager.getSettings()
+            val payload = "$start-$end"
+            mqttManager.publish("${settings.baseTopic}/system/time_range/set", payload)
+            _uiState.update { it.copy(timeRangeStart = start, timeRangeEnd = end) }
+            addLog("ACTION", "Time Range Set", "Range: $payload")
         }
     }
 

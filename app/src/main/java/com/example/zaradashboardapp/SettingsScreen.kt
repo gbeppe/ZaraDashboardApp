@@ -67,6 +67,15 @@ fun SettingsScreen(viewModel: DashboardViewModel) {
                     checked = uiState.climate.isAutoModeEnabled,
                     onCheckedChange = { viewModel.toggleAcAuto() }
                 )
+
+                HorizontalDivider(color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.05f))
+
+                TimeRangeWidget(
+                    label = "Range Orario Operativo",
+                    startHour = uiState.timeRangeStart,
+                    endHour = uiState.timeRangeEnd,
+                    onRangeChange = { start, end -> viewModel.setTimeRange(start, end) }
+                )
             }
         }
     }

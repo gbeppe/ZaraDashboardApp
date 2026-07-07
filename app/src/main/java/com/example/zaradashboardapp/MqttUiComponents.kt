@@ -207,3 +207,56 @@ fun DashboardCard(
         }
     }
 }
+
+@Composable
+fun TimeRangeWidget(
+    label: String,
+    startHour: Int,
+    endHour: Int,
+    onRangeChange: (Int, Int) -> Unit
+) {
+    var range by remember(startHour, endHour) { 
+        mutableStateOf(startHour.toFloat()..endHour.toFloat()) 
+    }
+
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(label, color = OffWhite, fontWeight = FontWeight.Medium, fontSize = 13.sp)
+            Surface(
+                color = TealPrimary.copy(alpha = 0.1f),
+                shape = RoundedCornerShape(4.dp)
+            ) {
+                Text(
+                    text = "${range.start.toInt()}:00 - ${range.endInclusive.toInt()}:00",
+                    color = TealPrimary,
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
+        
+        Spacer(modifier = Modifier.height(8.dp))
+        
+        RangeSlider(
+            value = range,
+            onValueChange = { range = it },
+            valueRange = 0f..24f,
+            steps = 23,
+            onValueChangeFinished = {
+                onRangeChange(range.start.toInt(), range.endInclusive.toInt())
+            },
+            colors = SliderDefaults.colors(
+                thumbColor = TealPrimary,
+                activeTrackColor = TealPrimary,
+                inactiveTrackColor = Color.White.copy(alpha = 0.1f),
+                activeTickColor = Color.Transparent,
+                inactiveTickColor = Color.Transparent
+            )
+        )
+    }
+}
