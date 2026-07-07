@@ -2,11 +2,13 @@ package com.example.zaradashboardapp
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -196,133 +198,152 @@ fun TrendChartCard(
                     }
                 }
 
-                Row(
+                val scrollState = rememberScrollState(initial = Int.MAX_VALUE)
+                
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(180.dp)
-                        .padding(top = 24.dp)
+                        .height(220.dp)
+                        .horizontalScroll(scrollState)
                 ) {
-                    // Y Axis labels
-                    Column(
-                        modifier = Modifier
-                            .width(45.dp)
-                            .fillMaxHeight(),
-                        verticalArrangement = Arrangement.SpaceBetween,
-                        horizontalAlignment = Alignment.End
-                    ) {
-                        Text(
-                            text = String.format(Locale.US, "%.1f", maxVal),
-                            color = GreyText,
-                            fontSize = 9.sp,
-                            modifier = Modifier.padding(end = 8.dp)
-                        )
-                        Text(
-                            text = String.format(Locale.US, "%.1f", minVal),
-                            color = GreyText,
-                            fontSize = 9.sp,
-                            modifier = Modifier.padding(end = 8.dp)
-                        )
-                    }
+                    // Calcoliamo la larghezza totale del grafico basandoci su 7 giorni
+                    // Se 24h occupano la larghezza dello schermo (es. 400dp), 7 giorni saranno 7 * 400dp
+                    // Per semplicità usiamo un moltiplicatore fisso proporzionale al numero di punti
+                    // Assumendo 1 punto ogni 15 minuti -> 1440/15 = 96 punti per 24h.
+                    // Se abbiamo 2000 punti, il grafico sarà molto lungo.
+                    
+                    val pointsCount = dataSeries.maxOf { it.data.size }
+                    val chartWidth = (pointsCount * 10).dp.coerceAtLeast(400.dp)
 
-                    // Chart Canvas
-                    Canvas(
+                    Row(
                         modifier = Modifier
-                            .weight(1f)
+                            .width(chartWidth)
                             .fillMaxHeight()
+                            .padding(top = 24.dp)
                     ) {
-                        val width = size.width
-                        val height = size.height
-
-                        // Draw Zero Line
-                        if (minVal < 0f && maxVal > 0f) {
-                            val zeroY = height - ((0f - minVal) / range * height)
-                            drawLine(
-                                color = GreyText.copy(alpha = 0.3f),
-                                start = Offset(0f, zeroY),
-                                end = Offset(width, zeroY),
-                                strokeWidth = 1.dp.toPx(),
-                                pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 10f), 0f)
+                        // Y Axis labels (Fisse a sinistra, ma qui le mettiamo nel flusso dello scroll)
+                        // Per farle restare fisse servirebbe un Box esterno, ma complica il disegno.
+                        // Le mettiamo all'inizio dello scroll.
+                        Column(
+                            modifier = Modifier
+                                .width(45.dp)
+                                .fillMaxHeight(),
+                            verticalArrangement = Arrangement.SpaceBetween,
+                            horizontalAlignment = Alignment.End
+                        ) {
+                            Text(
+                                text = String.format(Locale.US, "%.1f", maxVal),
+                                color = GreyText,
+                                fontSize = 9.sp,
+                                modifier = Modifier.padding(end = 8.dp)
+                            )
+                            Text(
+                                text = String.format(Locale.US, "%.1f", minVal),
+                                color = GreyText,
+                                fontSize = 9.sp,
+                                modifier = Modifier.padding(end = 8.dp)
                             )
                         }
 
-                        dataSeries.forEach { series ->
-                            if (series.data.size > 1) {
-                                val spaceX = width / (series.data.size - 1)
-                                val points = series.data.mapIndexed { i, value ->
-                                    val x = i * spaceX
-                                    val y = height - ((value - minVal) / range * height)
-                                    Offset(x, y)
-                                }
+                        // Chart Canvas
+                        Canvas(
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxHeight()
+                        ) {
+                            val width = size.width
+                            val height = size.height
 
-                                val path = Path().apply {
-                                    moveTo(points.first().x, points.first().y)
-                                    for (i in 1 until points.size) {
-                                        val prev = points[i - 1]
-                                        val curr = points[i]
-                                        val cp1 = Offset((prev.x + curr.x) / 2, prev.y)
-                                        val cp2 = Offset((prev.x + curr.x) / 2, curr.y)
-                                        cubicTo(cp1.x, cp1.y, cp2.x, cp2.y, curr.x, curr.y)
+                            // Draw Zero Line
+                            if (minVal < 0f && maxVal > 0f) {
+                                val zeroY = height - ((0f - minVal) / range * height)
+                                drawLine(
+                                    color = GreyText.copy(alpha = 0.3f),
+                                    start = Offset(0f, zeroY),
+                                    end = Offset(width, zeroY),
+                                    strokeWidth = 1.dp.toPx(),
+                                    pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 10f), 0f)
+                                )
+                            }
+
+                            dataSeries.forEach { series ->
+                                if (series.data.size > 1) {
+                                    val spaceX = width / (series.data.size - 1)
+                                    val points = series.data.mapIndexed { i, value ->
+                                        val x = i * spaceX
+                                        val y = height - ((value - minVal) / range * height)
+                                        Offset(x, y)
                                     }
-                                }
 
-                                // Fill
-                                val fillPath = Path().apply {
-                                    addPath(path)
-                                    lineTo(points.last().x, height)
-                                    lineTo(points.first().x, height)
-                                    close()
-                                }
-                                drawPath(
-                                    path = fillPath,
-                                    brush = Brush.verticalGradient(
-                                        colors = listOf(series.color.copy(alpha = 0.1f), Color.Transparent),
-                                        startY = 0f,
-                                        endY = height
+                                    val path = Path().apply {
+                                        moveTo(points.first().x, points.first().y)
+                                        for (i in 1 until points.size) {
+                                            val prev = points[i - 1]
+                                            val curr = points[i]
+                                            val cp1 = Offset((prev.x + curr.x) / 2, prev.y)
+                                            val cp2 = Offset((prev.x + curr.x) / 2, curr.y)
+                                            cubicTo(cp1.x, cp1.y, cp2.x, cp2.y, curr.x, curr.y)
+                                        }
+                                    }
+
+                                    // Fill
+                                    val fillPath = Path().apply {
+                                        addPath(path)
+                                        lineTo(points.last().x, height)
+                                        lineTo(points.first().x, height)
+                                        close()
+                                    }
+                                    drawPath(
+                                        path = fillPath,
+                                        brush = Brush.verticalGradient(
+                                            colors = listOf(series.color.copy(alpha = 0.1f), Color.Transparent),
+                                            startY = 0f,
+                                            endY = height
+                                        )
                                     )
-                                )
 
-                                // Line
-                                drawPath(
-                                    path = path,
-                                    color = series.color,
-                                    style = Stroke(width = 2.5.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round)
-                                )
-
-                                // Last Point
-                                val lastPoint = points.last()
-                                val lastValue = series.data.last()
-                                
-                                drawCircle(color = series.color.copy(alpha = 0.3f), radius = 6.dp.toPx(), center = lastPoint)
-                                drawCircle(color = series.color, radius = 3.dp.toPx(), center = lastPoint)
-                                drawCircle(color = Color.White, radius = 1.5.dp.toPx(), center = lastPoint)
-
-                                // Value Text (offset it based on index to avoid overlapping if possible)
-                                val textLayoutResult = textMeasurer.measure(
-                                    text = String.format(Locale.US, "%.1f", lastValue),
-                                    style = TextStyle(color = series.color, fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                                )
-                                
-                                // Simple logic to avoid overlap: stagger Y
-                                val yOffset = if (dataSeries.indexOf(series) % 2 == 0) 12.dp.toPx() else 24.dp.toPx()
-                                
-                                drawText(
-                                    textLayoutResult = textLayoutResult,
-                                    topLeft = Offset(
-                                        x = lastPoint.x - (textLayoutResult.size.width / 2),
-                                        y = lastPoint.y - textLayoutResult.size.height - yOffset
+                                    // Line
+                                    drawPath(
+                                        path = path,
+                                        color = series.color,
+                                        style = Stroke(width = 2.5.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round)
                                     )
-                                )
+
+                                    // Last Point
+                                    val lastPoint = points.last()
+                                    val lastValue = series.data.last()
+                                    
+                                    drawCircle(color = series.color.copy(alpha = 0.3f), radius = 6.dp.toPx(), center = lastPoint)
+                                    drawCircle(color = series.color, radius = 3.dp.toPx(), center = lastPoint)
+                                    drawCircle(color = Color.White, radius = 1.5.dp.toPx(), center = lastPoint)
+
+                                    // Value Text
+                                    val textLayoutResult = textMeasurer.measure(
+                                        text = String.format(Locale.US, "%.1f", lastValue),
+                                        style = TextStyle(color = series.color, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                    )
+                                    
+                                    val yOffset = if (dataSeries.indexOf(series) % 2 == 0) 12.dp.toPx() else 24.dp.toPx()
+                                    
+                                    drawText(
+                                        textLayoutResult = textLayoutResult,
+                                        topLeft = Offset(
+                                            x = lastPoint.x - (textLayoutResult.size.width / 2),
+                                            y = lastPoint.y - textLayoutResult.size.height - yOffset
+                                        )
+                                    )
+                                }
                             }
                         }
                     }
                 }
 
                 Row(
-                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp, start = 45.dp),
+                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Text("Inizio", color = GreyText, fontSize = 10.sp)
-                    Text("Tempo reale", color = GreyText, fontSize = 10.sp)
+                    Text("7 giorni fa", color = GreyText, fontSize = 10.sp)
+                    Text("Scorri per navigare lo storico", color = TealPrimary, fontSize = 10.sp, fontWeight = FontWeight.Bold)
                     Text("Ora", color = GreyText, fontSize = 10.sp)
                 }
             }

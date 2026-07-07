@@ -76,8 +76,15 @@ data class AmbientiData(
 )
 
 @JsonClass(generateAdapter = true)
-data class DettaglioComandi(
-    @Json(name = "motivo_logica") val motivoLogica: String
+data class HistoryEntry(
+    @Json(name = "data_ora") val dataOra: String? = null,
+    @Json(name = "stato_ac") val statoAc: String? = null,
+    @Json(name = "temp_impostata") val tempImpostata: Float? = null,
+    @Json(name = "temp_rilevata") val tempRilevata: Float? = null,
+    @Json(name = "humidex") val humidex: Float? = null,
+    @Json(name = "vmc_velocita") val vmcVelocita: Int? = null,
+    @Json(name = "humidex_living") val humidexLiving: Float? = null,
+    @Json(name = "humidex_bedroom") val humidexBedroom: Float? = null
 )
 
 enum class ConnectionStatus {
@@ -221,6 +228,9 @@ class DashboardViewModel(
         .addLast(KotlinJsonAdapterFactory())
         .build()
     private val telemetryAdapter = moshi.adapter(AiTelemetryPayload::class.java)
+    private val historyAdapter = moshi.adapter<List<HistoryEntry>>(
+        com.squareup.moshi.Types.newParameterizedType(List::class.java, HistoryEntry::class.java)
+    )
 
     private val mqttManager = MqttManager(
         context = application,
@@ -228,6 +238,11 @@ class DashboardViewModel(
             Log.d("MQTT_DEBUG", "Status: $status")
             _uiState.update { it.copy(connectionStatus = status) }
             addLog("SYSTEM", "Connection Status Changed", "New status: $status")
+            
+            // Quando ci connettiamo, richiediamo lo storico
+            if (status == ConnectionStatus.CONNECTED_LOCAL || status == ConnectionStatus.CONNECTED_REMOTE) {
+                requestHistory()
+            }
         },
         onMessageReceived = { topic, message ->
             handleMqttMessage(topic, message)
@@ -245,6 +260,14 @@ class DashboardViewModel(
         Log.d("MQTT_DEBUG", "initMqtt called")
         val settings = settingsManager.getSettings()
         mqttManager.connect(settings)
+    }
+
+    /**
+     * Richiede lo storico dati al broker.
+     */
+    fun requestHistory() {
+        val baseTopic = settingsManager.getSettings().baseTopic
+        mqttManager.publish("$baseTopic/history/ac/request", "{}")
     }
 
     /**
@@ -314,6 +337,9 @@ class DashboardViewModel(
         val baseTopic = settingsManager.getSettings().baseTopic
         viewModelScope.launch {
             when {
+                topic.endsWith("/history/ac/response") -> {
+                    parseHistoryData(message)
+                }
                 topic.contains("/energy/grid") -> {
                     val surplus = message.toFloatOrNull() ?: 0f
                     _uiState.update { it.copy(energy = it.energy.copy(gridPowerW = surplus.toInt())) }
@@ -882,6 +908,32 @@ class DashboardViewModel(
             } catch (e: Exception) {
                 Log.e("DashboardViewModel", "Error parsing AI telemetry", e)
                 addLog("ERROR", "JSON Parsing Failed", e.message ?: "Unknown error")
+            }
+        }
+    }
+
+    private suspend fun parseHistoryData(json: String) {
+        withContext(Dispatchers.Default) {
+            try {
+                val history = historyAdapter.fromJson(json) ?: return@withContext
+                Log.d("MQTT_DEBUG", "Parsed ${history.size} history entries")
+                
+                // Le entries arrivano in ordine DESC (più recente prima) secondo lo screenshot
+                // Ma per i grafici solitamente serve l'ordine cronologico ASC
+                val sortedHistory = history.reversed()
+
+                _uiState.update { state ->
+                    state.copy(
+                        acTargetTempHistory = sortedHistory.map { if (it.statoAc != "OFF") it.tempImpostata ?: 0f else 0f },
+                        vmcFanSpeedHistory = sortedHistory.map { it.vmcVelocita?.toFloat() ?: 0f },
+                        humidexHistory = sortedHistory.map { it.humidexLiving ?: 0f },
+                        humidexBedroomHistory = sortedHistory.map { it.humidexBedroom ?: 0f },
+                        tempLivingHistory = sortedHistory.map { it.tempRilevata ?: 0f }
+                        // Nota: outdoor history non sembra presente nello schema SQL mostrato
+                    )
+                }
+            } catch (e: Exception) {
+                Log.e("DashboardViewModel", "Error parsing history JSON", e)
             }
         }
     }
