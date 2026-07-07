@@ -41,6 +41,15 @@ L'app si sottoscrive a `{baseTopic}/#` e processa i seguenti topic:
 | `.../pufferAltoTemp` | Float | Temperatura Puffer Parte Alta (°C) |
 | `.../pufferBassoTemp` | Float | Temperatura Puffer Parte Bassa (°C) |
 
+### Stato Sistema (Automatismi)
+| Topic | Messaggio | Descrizione |
+| :--- | :--- | :--- |
+| `.../system/enabled/state` | `1`/`0` o `true`/`false` | Stato globale sistema AI |
+| `.../holiday/state` | `1`/`0` o `true`/`false` | Stato modalità vacanza |
+| `.../system/luci_eco/state` | `1`/`0` o `true`/`false` | Stato luci ECO |
+| `.../system/luci_piscina_auto/state` | `1`/`0` o `true`/`false` | Stato luci piscina AUTO |
+| `.../system/sensore_portico/state` | `1`/`0` o `true`/`false` | Stato sensore portico |
+
 ### VMC e Luci
 | Topic | Messaggio | Descrizione |
 | :--- | :--- | :--- |
@@ -49,7 +58,7 @@ L'app si sottoscrive a `{baseTopic}/#` e processa i seguenti topic:
 
 ### Telemetria AI (JSON)
 L'app riceve uno stato completo tramite un payload JSON.
-- **Topic**: `casa/clima/stato_completo`
+- **Topic**: `casa/clima/stato_completo` (o `{baseTopic}/casa/clima/stato_completo`)
 - **Formato**:
 ```json
 {
@@ -69,7 +78,12 @@ L'app riceve uno stato completo tramite un payload JSON.
 | Funzione | Topic | Messaggio |
 | :--- | :--- | :--- |
 | **Accensione Luce** | `{baseTopic}/light/{nome}/set` | `ON`/`OFF` |
-| **Sistema Globale** | `{baseTopic}/system/enabled/set` | `1` (Attivo), `0` (Disattivo) |
+| **Sistema Globale (AI)** | `{baseTopic}/system/enabled/set` | `1` (Attivo), `0` (Disattivo) |
 | **Modalità Vacanza** | `{baseTopic}/holiday/set` | `1` (Attivo), `0` (Disattivo) |
+| **Luci ECO** | `{baseTopic}/system/luci_eco/set` | `1` (Attivo), `0` (Disattivo) |
+| **Luci Piscina AUTO** | `{baseTopic}/system/luci_piscina_auto/set` | `1` (Attivo), `0` (Disattivo) |
+| **Sensore Portico** | `{baseTopic}/system/sensore_portico/set` | `1` (Attivo), `0` (Disattivo) |
 | **Target Termostato**| `{baseTopic}/thermostat/living/target/set` | Int (es. `24`) |
+| **AC Auto** | `{baseTopic}/ac_auto/set` | `ON`/`OFF` |
 | **Velocità VMC** | `{baseTopic}/vmc/speed/set` | Int (es. `2`) |
+| **Scena Luci** | `{baseTopic}/scene/set` | String (es. `TV_MODE`) |
