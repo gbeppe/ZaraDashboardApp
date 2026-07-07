@@ -47,9 +47,14 @@ fun DashboardScreen(viewModel: DashboardViewModel) {
     if (showSettings) {
         SettingsDialog(
             currentSettings = viewModel.getSettings(),
+            tinyCamSettings = viewModel.getTinyCamSettings(),
             onDismiss = { showSettings = false },
-            onSave = { newSettings ->
+            onSaveMqtt = { newSettings ->
                 viewModel.saveSettings(newSettings)
+                showSettings = false
+            },
+            onSaveTinyCam = { newSettings ->
+                viewModel.saveTinyCamSettings(newSettings)
                 showSettings = false
             }
         )

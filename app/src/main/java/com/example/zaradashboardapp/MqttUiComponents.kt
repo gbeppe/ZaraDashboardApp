@@ -74,15 +74,28 @@ fun ConnectionIndicator(status: ConnectionStatus) {
 @Composable
 fun SettingsDialog(
     currentSettings: SettingsManager.MqttSettings,
+    tinyCamSettings: SettingsManager.TinyCamSettings,
     onDismiss: () -> Unit,
-    onSave: (SettingsManager.MqttSettings) -> Unit
+    onSaveMqtt: (SettingsManager.MqttSettings) -> Unit,
+    onSaveTinyCam: (SettingsManager.TinyCamSettings) -> Unit
 ) {
+    var selectedTabIndex by remember { mutableIntStateOf(0) }
+    val tabs = listOf("MQTT", "tinyCam")
+
+    // MQTT States
     var localIp by remember { mutableStateOf(currentSettings.localIp) }
     var remoteIp by remember { mutableStateOf(currentSettings.remoteIp) }
     var port by remember { mutableStateOf(currentSettings.port) }
     var username by remember { mutableStateOf(currentSettings.username) }
     var password by remember { mutableStateOf(currentSettings.password) }
     var baseTopic by remember { mutableStateOf(currentSettings.baseTopic) }
+
+    // tinyCam States
+    var tcIp by remember { mutableStateOf(tinyCamSettings.ip) }
+    var tcRemoteIp by remember { mutableStateOf(tinyCamSettings.remoteIp) }
+    var tcPort by remember { mutableStateOf(tinyCamSettings.port) }
+    var tcUser by remember { mutableStateOf(tinyCamSettings.user) }
+    var tcPass by remember { mutableStateOf(tinyCamSettings.pass) }
 
     Dialog(onDismissRequest = onDismiss) {
         Card(
@@ -95,39 +108,77 @@ fun SettingsDialog(
             Column(
                 modifier = Modifier
                     .padding(24.dp)
-                    .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
+                    .heightIn(max = 500.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    "Configurazione MQTT",
+                    "Configurazione",
                     style = MaterialTheme.typography.titleLarge,
                     color = Color.White,
                     fontWeight = FontWeight.Bold
                 )
+                
+                Spacer(modifier = Modifier.height(16.dp))
 
-                SettingsField(label = "Local IP Broker", value = localIp, onValueChange = { localIp = it })
-                SettingsField(label = "Remote IP (4G/5G)", value = remoteIp, onValueChange = { remoteIp = it })
-                SettingsField(label = "Porta", value = port, onValueChange = { port = it })
-                SettingsField(label = "Username", value = username, onValueChange = { username = it })
-                SettingsField(label = "Password", value = password, onValueChange = { password = it }, isPassword = true)
-                SettingsField(label = "Topic Base", value = baseTopic, onValueChange = { baseTopic = it })
+                TabRow(
+                    selectedTabIndex = selectedTabIndex,
+                    containerColor = Color.Transparent,
+                    contentColor = TealPrimary,
+                    divider = {}
+                ) {
+                    tabs.forEachIndexed { index, title ->
+                        Tab(
+                            selected = selectedTabIndex == index,
+                            onClick = { selectedTabIndex = index },
+                            text = { Text(title, fontSize = 12.sp) }
+                        )
+                    }
+                }
 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    if (selectedTabIndex == 0) {
+                        SettingsField(label = "Local IP Broker", value = localIp, onValueChange = { localIp = it })
+                        SettingsField(label = "Remote IP (4G/5G)", value = remoteIp, onValueChange = { remoteIp = it })
+                        SettingsField(label = "Porta", value = port, onValueChange = { port = it })
+                        SettingsField(label = "Username", value = username, onValueChange = { username = it })
+                        SettingsField(label = "Password", value = password, onValueChange = { password = it }, isPassword = true)
+                        SettingsField(label = "Topic Base", value = baseTopic, onValueChange = { baseTopic = it })
+                    } else {
+                        SettingsField(label = "Local IP tinyCam (WiFi)", value = tcIp, onValueChange = { tcIp = it })
+                        SettingsField(label = "Remote IP tinyCam (Cellulare)", value = tcRemoteIp, onValueChange = { tcRemoteIp = it })
+                        SettingsField(label = "Porta Web Server", value = tcPort, onValueChange = { tcPort = it })
+                        SettingsField(label = "Username", value = tcUser, onValueChange = { tcUser = it })
+                        SettingsField(label = "Password", value = tcPass, onValueChange = { tcPass = it }, isPassword = true)
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
 
                 Button(
                     onClick = {
-                        onSave(SettingsManager.MqttSettings(localIp, remoteIp, port, username, password, baseTopic))
+                        if (selectedTabIndex == 0) {
+                            onSaveMqtt(SettingsManager.MqttSettings(localIp, remoteIp, port, username, password, baseTopic))
+                        } else {
+                            onSaveTinyCam(SettingsManager.TinyCamSettings(tcIp, tcRemoteIp, tcPort, tcUser, tcPass))
+                        }
                     },
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.buttonColors(containerColor = Emerald),
                     shape = RoundedCornerShape(12.dp)
                 ) {
-                    Text("SALVA E RICONNETTI", color = DarkBackground, fontWeight = FontWeight.Bold)
+                    val btnText = if (selectedTabIndex == 0) "SALVA E RICONNETTI MQTT" else "SALVA CONFIG TINYCAM"
+                    Text(btnText, color = DarkBackground, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                 }
                 
                 TextButton(onClick = onDismiss) {
-                    Text("Annulla", color = Color.Gray)
+                    Text("Chiudi", color = Color.Gray)
                 }
             }
         }

@@ -99,6 +99,14 @@ L'app riceve uno stato completo tramite un payload JSON complesso.
 
 ---
 
+## Integrazione Video (tinyCam Monitor Pro)
+L'app può integrare lo streaming video tramite il Web Server di tinyCam Monitor Pro.
+- **URL Base**: `http://IP_TINYCAM:PORTA`
+- **Streaming MJPEG (Singola Camera)**: `http://IP:PORT/axis-cgi/mjpg/video.cgi?camera=[ID]` (ID inizia da 1)
+- **Porta Predefinita**: `8083`
+
+---
+
 ## Messaggi in Uscita (Pubblicazione)
 
 | Funzione | Topic | Messaggio |

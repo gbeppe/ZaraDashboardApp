@@ -251,6 +251,8 @@ class DashboardViewModel(
      */
     fun getSettings(): SettingsManager.MqttSettings = settingsManager.getSettings()
 
+    fun getTinyCamSettings(): SettingsManager.TinyCamSettings = settingsManager.getTinyCamSettings()
+
     /**
      * Salva le nuove impostazioni e riconnette l'MQTT.
      */
@@ -259,6 +261,11 @@ class DashboardViewModel(
         mqttManager.disconnect()
         initMqtt()
         addLog("ACTION", "Settings Saved", "MQTT Reconnecting...")
+    }
+
+    fun saveTinyCamSettings(settings: SettingsManager.TinyCamSettings) {
+        settingsManager.saveTinyCamSettings(settings)
+        addLog("ACTION", "tinyCam Settings Saved", "Config updated")
     }
 
     /**

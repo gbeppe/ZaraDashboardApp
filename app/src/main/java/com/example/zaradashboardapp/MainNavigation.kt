@@ -39,6 +39,7 @@ enum class AppRoute(val route: String) {
     HOME("home"),
     CLIMATE("climate"),
     ANALYTICS("analytics"),
+    CAMERA("camera"),
     LOGS("logs"),
     SETTINGS("settings")
 }
@@ -54,6 +55,7 @@ val dashboardNavItems = listOf(
     BottomNavItem(AppRoute.HOME, Icons.Default.Home, "Home"),
     BottomNavItem(AppRoute.CLIMATE, Icons.Default.Thermostat, "Clima"),
     BottomNavItem(AppRoute.ANALYTICS, Icons.Default.BarChart, "Dati"),
+    BottomNavItem(AppRoute.CAMERA, Icons.Default.Videocam, "Camera"),
     BottomNavItem(AppRoute.LOGS, Icons.Default.History, "Log"),
     BottomNavItem(AppRoute.SETTINGS, Icons.Default.Settings, "Setup")
 )
@@ -82,9 +84,14 @@ fun MainScreen(
     if (showSettings) {
         SettingsDialog(
             currentSettings = dashboardViewModel.getSettings(),
+            tinyCamSettings = dashboardViewModel.getTinyCamSettings(),
             onDismiss = { showSettings = false },
-            onSave = { newSettings ->
+            onSaveMqtt = { newSettings ->
                 dashboardViewModel.saveSettings(newSettings)
+                showSettings = false
+            },
+            onSaveTinyCam = { newSettings ->
+                dashboardViewModel.saveTinyCamSettings(newSettings)
                 showSettings = false
             }
         )
@@ -232,6 +239,9 @@ fun MainScreen(
                     }
                     composable(AppRoute.ANALYTICS.route) {
                         AnalyticsScreen(uiState = uiState)
+                    }
+                    composable(AppRoute.CAMERA.route) {
+                        CameraScreen(viewModel = dashboardViewModel)
                     }
                     composable(AppRoute.LOGS.route) {
                         LogsScreen(uiState = uiState)
