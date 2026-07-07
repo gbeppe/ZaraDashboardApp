@@ -519,6 +519,11 @@ class DashboardViewModel(
             }
             
             addLog("MQTT", "Data Update", "Topic: $topic, Val: $message")
+            
+            // Aggiorna l'orario dell'ultimo messaggio ricevuto
+            val now = java.time.LocalDateTime.now()
+            val formatter = java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss dd/MM/yyyy")
+            _uiState.update { it.copy(lastUpdateTime = now.format(formatter)) }
         }
     }
 

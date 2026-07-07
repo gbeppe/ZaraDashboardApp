@@ -56,14 +56,6 @@ fun OverviewScreen(uiState: SystemState) {
                     fontWeight = FontWeight.Bold
                 )
             }
-            
-            if (uiState.lastUpdateTime.isNotEmpty()) {
-                Text(
-                    text = uiState.lastUpdateTime,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = GreyText
-                )
-            }
         }
 
         // 1. Energia
@@ -108,7 +100,8 @@ fun OverviewScreen(uiState: SystemState) {
         // 3. Condizionatore
         DashboardCard(title = "Condizionatore", accentColor = BlueCool) {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OverviewRow("Stato", uiState.climate.reason)
+                val climateStatus = if (uiState.climate.reason == "N/A") "OFF" else uiState.climate.reason
+                OverviewRow("Stato", climateStatus)
                 OverviewRow("Modalità", uiState.climate.mode)
                 OverviewRow("Temperatura Impostata", "${uiState.climate.targetTemp} °C")
 
@@ -130,6 +123,16 @@ fun OverviewScreen(uiState: SystemState) {
                 OverviewRow("Velocità Attuale", uiState.vmc.fanSpeed.toString())
                 OverviewRow("Portata Stimata", "${uiState.logic.portataVmc} m³/h")
             }
+        }
+
+        if (uiState.lastUpdateTime.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "Ultimo aggiornamento: ${uiState.lastUpdateTime}",
+                style = MaterialTheme.typography.labelMedium,
+                color = GreyText.copy(alpha = 0.6f),
+                modifier = Modifier.align(Alignment.CenterHorizontally)
+            )
         }
 
         Spacer(modifier = Modifier.height(24.dp))
