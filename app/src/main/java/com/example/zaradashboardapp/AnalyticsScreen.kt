@@ -2,6 +2,7 @@ package com.example.zaradashboardapp
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -10,6 +11,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -27,6 +29,7 @@ import androidx.compose.ui.unit.sp
 import com.example.zaradashboardapp.ui.theme.*
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import kotlinx.coroutines.launch
 
 data class ChartSeries(
     val data: List<Float>,
@@ -340,11 +343,27 @@ fun TrendChartCard(
 
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text("7 giorni fa", color = GreyText, fontSize = 10.sp)
                     Text("Scorri per navigare lo storico", color = TealPrimary, fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                    Text("Ora", color = GreyText, fontSize = 10.sp)
+                    
+                    val scope = rememberCoroutineScope()
+                    Text(
+                        text = "Ora",
+                        color = TealPrimary,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        modifier = Modifier
+                            .clickable {
+                                scope.launch {
+                                    scrollState.animateScrollTo(scrollState.maxValue)
+                                }
+                            }
+                            .background(TealPrimary.copy(alpha = 0.1f), RoundedCornerShape(4.dp))
+                            .padding(horizontal = 8.dp, vertical = 2.dp)
+                    )
                 }
             }
         }

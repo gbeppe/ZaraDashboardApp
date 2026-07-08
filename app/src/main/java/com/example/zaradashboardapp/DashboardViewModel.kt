@@ -80,11 +80,15 @@ data class HistoryEntry(
     @Json(name = "data_ora") val dataOra: String? = null,
     @Json(name = "stato_ac") val statoAc: String? = null,
     @Json(name = "temp_impostata") val tempImpostata: Float? = null,
-    @Json(name = "temp_rilevata") val tempRilevata: Float? = null,
+    @Json(name = "temp_living") val tempLiving: Float? = null,
+    @Json(name = "temp_camera") val tempBedroom: Float? = null,
+    @Json(name = "temp_esterno") val tempOutdoor: Float? = null,
     @Json(name = "humidex") val humidex: Float? = null,
     @Json(name = "vmc_velocita") val vmcVelocita: Int? = null,
     @Json(name = "humidex_living") val humidexLiving: Float? = null,
-    @Json(name = "humidex_bedroom") val humidexBedroom: Float? = null
+    @Json(name = "humidex_bedroom") val humidexBedroom: Float? = null,
+    @Json(name = "batteria_soc") val batteriaSoc: Float? = null,
+    @Json(name = "surplus_w") val surplusW: Float? = null
 )
 
 enum class ConnectionStatus {
@@ -928,8 +932,11 @@ class DashboardViewModel(
                         vmcFanSpeedHistory = sortedHistory.map { it.vmcVelocita?.toFloat() ?: 0f },
                         humidexHistory = sortedHistory.map { it.humidexLiving ?: 0f },
                         humidexBedroomHistory = sortedHistory.map { it.humidexBedroom ?: 0f },
-                        tempLivingHistory = sortedHistory.map { it.tempRilevata ?: 0f }
-                        // Nota: outdoor history non sembra presente nello schema SQL mostrato
+                        tempLivingHistory = sortedHistory.map { it.tempLiving ?: 0f },
+                        tempBedroomHistory = sortedHistory.map { it.tempBedroom ?: 0f },
+                        tempOutdoorHistory = sortedHistory.map { it.tempOutdoor ?: 0f },
+                        batteryHistory = sortedHistory.map { it.batteriaSoc ?: 0f },
+                        surplusHistory = sortedHistory.map { it.surplusW ?: 0f }
                     )
                 }
             } catch (e: Exception) {
